@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+.font-display {
+  font-family: 'Playfair Display', serif;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

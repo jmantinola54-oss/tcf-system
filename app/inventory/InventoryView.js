@@ -3,6 +3,7 @@
 import { useState, Fragment } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { logActivity } from '../lib/audit'
 
 function statusFor(item) {
   if (item.qty <= 0) return { label: 'Out of stock', color: '#C0282A' }
@@ -23,7 +24,7 @@ export default function InventoryView({ initialItems, currentUserName }) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [showAdd, setShowAdd] = useState(false)
-  const [actionRow, setActionRow] = useState(null) // { itemId, type: 'withdraw' | 'restock' }
+  const [actionRow, setActionRow] = useState(null)
   const [busy, setBusy] = useState(false)
 
   const [newItem, setNewItem] = useState({ name: '', uom: 'pcs', qty: 0, threshold: 1, description: '' })
@@ -48,6 +49,7 @@ export default function InventoryView({ initialItems, currentUserName }) {
     })
     setBusy(false)
     if (error) { alert('Error: ' + error.message); return }
+    await logActivity(supabase, 'inventory_added', { name: newItem.name.trim() })
     setNewItem({ name: '', uom: 'pcs', qty: 0, threshold: 1, description: '' })
     setShowAdd(false)
     router.refresh()
@@ -83,6 +85,8 @@ export default function InventoryView({ initialItems, currentUserName }) {
       })
     }
 
+    await logActivity(supabase, actionRow.type === 'withdraw' ? 'inventory_withdraw' : 'inventory_restock', { item_name: item.name, qty })
+
     setBusy(false)
     setActionRow(null)
     router.refresh()
@@ -94,6 +98,7 @@ export default function InventoryView({ initialItems, currentUserName }) {
     const { error } = await supabase.from('inventory_items').delete().eq('id', item.id)
     setBusy(false)
     if (error) { alert('Error: ' + error.message); return }
+    await logActivity(supabase, 'inventory_deleted', { name: item.name })
     router.refresh()
   }
 

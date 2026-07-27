@@ -1,5 +1,6 @@
 import { createClient } from '../lib/supabase/server'
 import { redirect } from 'next/navigation'
+import BranchesOverview from './components/BranchesOverview'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,46 +13,21 @@ export default async function Home() {
 
   if (profile?.status === 'pending') {
     return (
-      <div style={{ maxWidth: 500, margin: '60px auto', textAlign: 'center' }}>
-        <h1 style={{ color: '#0f3d28' }}>Welcome, {profile.full_name}</h1>
-        <p style={{ color: '#B06800', fontWeight: 600 }}>
-          Your account is waiting for administrator approval.
-        </p>
-        <p style={{ color: '#6E9A7C', fontSize: 13 }}>
-          You'll be able to access the system once an admin approves your account.
-        </p>
+      <div className="max-w-md mx-auto mt-20 text-center">
+        <div className="text-5xl mb-4">⏳</div>
+        <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-2">Welcome, {profile.full_name}</h1>
+        <p className="text-[#B06800] font-semibold text-sm mb-1">Your account is waiting for administrator approval.</p>
+        <p className="text-[#6E9A7C] text-xs">You'll get access once an admin approves your account.</p>
       </div>
     )
   }
 
-  return (
-    <div>
-      <h1 style={{ color: '#0f3d28', marginBottom: 4 }}>Welcome, {profile?.full_name || user.email}</h1>
-      <p style={{ color: '#6E9A7C', marginBottom: 30 }}>Here's what's happening today.</p>
+  const { data: branches } = await supabase
+    .from('branches')
+    .select('id, name, sort_order, pills(id, sections(id, checklist_items(id, checked)))')
+    .order('sort_order')
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-        <a href="/checklist" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 12, padding: 20 }}>
-            <div style={{ fontSize: 24 }}>📋</div>
-            <div style={{ fontWeight: 700, marginTop: 8 }}>Checklist</div>
-            <div style={{ fontSize: 12, color: '#888' }}>Branches & progress</div>
-          </div>
-        </a>
-        <a href="/tasks" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 12, padding: 20 }}>
-            <div style={{ fontSize: 24 }}>✅</div>
-            <div style={{ fontWeight: 700, marginTop: 8 }}>My Tasks</div>
-            <div style={{ fontSize: 12, color: '#888' }}>Assigned to you</div>
-          </div>
-        </a>
-        <a href="/inventory" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 12, padding: 20 }}>
-            <div style={{ fontSize: 24 }}>📦</div>
-            <div style={{ fontWeight: 700, marginTop: 8 }}>Inventory</div>
-            <div style={{ fontSize: 12, color: '#888' }}>Stock & withdrawals</div>
-          </div>
-        </a>
-      </div>
-    </div>
-  )
+  const isAdmin = ['admin', 'super_admin'].includes(profile?.role)
+
+  return <BranchesOverview initialBranches={branches || []} isAdmin={isAdmin} />
 }

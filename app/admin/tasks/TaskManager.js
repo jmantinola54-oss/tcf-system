@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '../../../lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { logActivity } from '../../lib/audit'
 
 const PRIORITIES = ['low', 'medium', 'high', 'critical']
 
@@ -60,6 +61,8 @@ export default function TaskManager({ sections, users, items, currentUserId }) {
       }))
       await supabase.from('notifications').insert(notifications)
     }
+
+    await logActivity(supabase, 'task_created', { label: label.trim() })
 
     setSaving(false)
     setLabel(''); setDepartment(''); setDueDate(''); setSelectedUsers([])
