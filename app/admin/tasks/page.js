@@ -16,7 +16,7 @@ export default async function TasksAdminPage() {
   const { data: users } = await supabase.from('profiles').select('id, full_name, email').eq('status', 'active').order('full_name')
   const { data: items } = await supabase
     .from('checklist_items')
-    .select('*, sections(label, pills(name, branches(name))), task_assignments(id, profiles!task_assignments_user_id_fkey(id, full_name, email))')
+    .select('*, sections(label, pills(name, branches(name))), task_assignments(id, user_id, profiles!task_assignments_user_id_fkey(id, full_name, email))')
     .order('created_at', { ascending: false })
 
   return (

@@ -176,6 +176,8 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
           {initialSections.map(function (section, idx) {
             const flatItems = section.checklist_items || []
             const tree = applyFilter(buildTree(flatItems))
+            if (filter !== 'all' && tree.length === 0) return null
+
             const stats = sectionStats(flatItems)
             const isCollapsed = !!collapsed[section.id]
 
@@ -202,7 +204,7 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
 
                 {!isCollapsed && (
                   <div>
-                    {tree.length === 0 && <div className="px-4 py-6 text-center text-[#999] text-xs">No items{filter !== 'all' ? ' match this filter' : ' yet'}.</div>}
+                    {tree.length === 0 && <div className="px-4 py-6 text-center text-[#999] text-xs">No items yet.</div>}
                     {tree.map(function (item) {
                       return <ItemRow key={item.id} item={item} onEdit={setEditingItem} categories={categories} isAdmin={isAdmin} />
                     })}
@@ -237,11 +239,12 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
 
       {viewMode === 'category' && (
         <div className="space-y-4">
-          {categoryGroups.length === 0 && <div className="bg-white rounded-2xl border border-[#e5e5e0] p-10 text-center text-[#888] text-sm">No items in this checklist yet.</div>}
           {categoryGroups.map(function (entry) {
             const category = entry[0]
             const allItems = entry[1]
             const items = applyFilter(allItems)
+            if (filter !== 'all' && items.length === 0) return null
+
             const total = allItems.length
             const done = allItems.filter(function (i) { return i.checked }).length
             const pct = total ? Math.round((done / total) * 100) : 0
@@ -261,11 +264,7 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
                   </div>
                   <span className="text-white font-bold text-xs w-9 text-right">{pct}%</span>
                 </div>
-                {!isCollapsed && (
-                  items.length === 0
-                    ? <div className="px-4 py-6 text-center text-[#999] text-xs">No items match this filter.</div>
-                    : items.map(function (item) { return <ItemRow key={item.id} item={item} onEdit={setEditingItem} categories={categories} isAdmin={isAdmin} /> })
-                )}
+                {!isCollapsed && items.map(function (item) { return <ItemRow key={item.id} item={item} onEdit={setEditingItem} categories={categories} isAdmin={isAdmin} /> })}
               </div>
             )
           })}

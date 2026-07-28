@@ -30,7 +30,6 @@ export default function ItemRow({ item, onEdit, level, categories, isAdmin }) {
   const supabase = createClient()
   const router = useRouter()
 
-  // Only ONE popup can be open at a time: null | 'remarks' | 'links' | 'menu'
   const [openPopup, setOpenPopup] = useState(null)
   const [expanded, setExpanded] = useState(true)
   const [addingSub, setAddingSub] = useState(false)
@@ -139,7 +138,12 @@ export default function ItemRow({ item, onEdit, level, categories, isAdmin }) {
     <div>
       <div
         className="flex items-center gap-3 px-4 py-2.5 border-b border-[#f2f2f0] hover:bg-[#FAFAF8] group relative"
-        style={{ paddingLeft: 16 + lvl * 26, zIndex: openPopup ? 20 : 'auto' }}
+        style={{
+          paddingLeft: 16 + lvl * 26,
+          zIndex: openPopup ? 20 : 'auto',
+          borderLeft: categoryObj ? '4px solid ' + categoryObj.color : '4px solid transparent',
+        }}
+        title={item.category || undefined}
       >
         {children.length > 0 ? (
           <button onClick={function () { setExpanded(function (e) { return !e }) }} className="text-[#999] flex-shrink-0">
@@ -153,7 +157,7 @@ export default function ItemRow({ item, onEdit, level, categories, isAdmin }) {
           onClick={toggleItem}
           className={'w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ' + (item.checked ? 'bg-[#16A35A] border-[#16A35A]' : 'border-[#ccc] hover:border-[#0f3d28]')}
         >
-          {item.checked && <span className="text-white text-[11px] leading-none">OK</span>}
+          {item.checked && <Check size={12} className="text-white" strokeWidth={3} />}
         </button>
 
         <span className={'flex-1 text-[13.5px] ' + (item.checked ? 'line-through text-[#aaa]' : 'text-[#222]')}>
@@ -167,15 +171,6 @@ export default function ItemRow({ item, onEdit, level, categories, isAdmin }) {
               title={assignee.full_name || assignee.email}
             >
               {initialsOf(assignee.full_name || assignee.email)}
-            </span>
-          )}
-
-          {item.category && (
-            <span
-              className="text-[10px] font-bold px-2 py-1 rounded-full text-white whitespace-nowrap"
-              style={{ background: categoryObj ? categoryObj.color : '#0f3d28' }}
-            >
-              {item.category}
             </span>
           )}
 
@@ -250,11 +245,9 @@ export default function ItemRow({ item, onEdit, level, categories, isAdmin }) {
                 <div>
                   <div className="fixed inset-0 z-[90]" onClick={function () { setOpenPopup(null) }} />
                   <div className="absolute right-0 top-6 bg-white border border-[#eee] rounded-lg shadow-lg py-1 w-48 z-[100]">
-                    {lvl === 0 && (
-                      <button onClick={function () { setOpenPopup(null); setAddingSub(true); setExpanded(true) }} className="w-full text-left px-3 py-1.5 text-xs text-[#204A2E] hover:bg-[#F5FAF6] flex items-center gap-1.5">
-                        <Plus size={12} /> Add sub-item
-                      </button>
-                    )}
+                    <button onClick={function () { setOpenPopup(null); setAddingSub(true); setExpanded(true) }} className="w-full text-left px-3 py-1.5 text-xs text-[#204A2E] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                      <Plus size={12} /> Add sub-item
+                    </button>
                     <button onClick={handleEditRemark} className="w-full text-left px-3 py-1.5 text-xs text-[#333] hover:bg-[#F5FAF6] flex items-center gap-1.5">
                       <StickyNote size={12} /> Edit remark
                     </button>
