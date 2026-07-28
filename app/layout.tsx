@@ -6,6 +6,8 @@ import AppShell from './components/AppShell'
 import HoldScreen from './components/HoldScreen'
 import { createClient } from '../lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
