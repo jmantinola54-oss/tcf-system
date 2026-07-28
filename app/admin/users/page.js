@@ -9,26 +9,15 @@ export default async function UsersAdminPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: myProfile } = await supabase
-    .from('profiles')
-    .select('role, status')
-    .eq('id', user.id)
-    .single()
+  const { data: myProfile } = await supabase.from('profiles').select('role, status').eq('id', user.id).single()
+  if (!myProfile || !['admin', 'super_admin'].includes(myProfile.role) || myProfile.status !== 'active') redirect('/')
 
-  // Only active admins/super_admins get past this point — everyone else
-  // gets bounced back to the homepage.
-  if (!myProfile || !['admin', 'super_admin'].includes(myProfile.role) || myProfile.status !== 'active') {
-    redirect('/')
-  }
-
-  const { data: users } = await supabase
-    .from('profiles')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const { data: users } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
 
   return (
-    <div style={{ padding: '40px', fontFamily: 'sans-serif', maxWidth: '1100px', margin: '0 auto' }}>
-      <h1 style={{ color: '#0f3d28' }}>User Management</h1>
+    <div>
+      <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-1">User Management</h1>
+      <p className="text-[#6E9A7C] text-sm mb-6">Approve registrations, manage roles and account status</p>
       <UserTable users={users || []} currentUserId={user.id} currentUserRole={myProfile.role} />
     </div>
   )
