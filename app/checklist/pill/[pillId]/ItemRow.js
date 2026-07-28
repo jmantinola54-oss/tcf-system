@@ -24,6 +24,18 @@ function openUrl(url) {
   window.open(url, '_blank', 'noreferrer')
 }
 
+// Turns a hex color like "#0f3d28" into a very light tint of itself,
+// so the category color is visible as a background without making
+// the item text hard to read.
+function tint(hex, alpha) {
+  if (!hex) return 'transparent'
+  const h = hex.replace('#', '')
+  const r = parseInt(h.substring(0, 2), 16)
+  const g = parseInt(h.substring(2, 4), 16)
+  const b = parseInt(h.substring(4, 6), 16)
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')'
+}
+
 export default function ItemRow({ item, onEdit, level, categories, isAdmin }) {
   const lvl = level || 0
   const cats = categories || []
@@ -137,10 +149,11 @@ export default function ItemRow({ item, onEdit, level, categories, isAdmin }) {
   return (
     <div>
       <div
-        className="flex items-center gap-3 px-4 py-2.5 border-b border-[#f2f2f0] hover:bg-[#FAFAF8] group relative"
+        className="flex items-center gap-3 px-4 py-2.5 border-b border-[#f2f2f0] hover:brightness-95 group relative transition-colors"
         style={{
           paddingLeft: 16 + lvl * 26,
           zIndex: openPopup ? 20 : 'auto',
+          background: categoryObj ? tint(categoryObj.color, 0.12) : 'transparent',
           borderLeft: categoryObj ? '4px solid ' + categoryObj.color : '4px solid transparent',
         }}
         title={item.category || undefined}
@@ -175,7 +188,7 @@ export default function ItemRow({ item, onEdit, level, categories, isAdmin }) {
           )}
 
           {item.due_date && (
-            <span className="text-[10.5px] text-[#888] bg-[#f2f2f0] px-2 py-1 rounded-full whitespace-nowrap">
+            <span className="text-[10.5px] text-[#888] bg-white px-2 py-1 rounded-full whitespace-nowrap">
               {new Date(item.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </span>
           )}
