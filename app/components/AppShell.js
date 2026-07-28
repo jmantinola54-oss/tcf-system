@@ -23,12 +23,7 @@ const ADMIN_NAV_ITEMS = [
 
 function NavLink({ item, active }) {
   return (
-    <Link
-      href={item.href}
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] mb-0.5 transition-colors ${
-        active ? 'bg-white/12 text-white font-semibold' : 'text-white/75 hover:bg-white/8 hover:text-white'
-      }`}
-    >
+    <Link href={item.href} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] mb-0.5 transition-colors ${active ? 'bg-white/12 text-white font-semibold' : 'text-white/75 hover:bg-white/8 hover:text-white'}`}>
       <span className="text-base leading-none">{item.icon}</span> {item.label}
     </Link>
   )
@@ -60,47 +55,34 @@ export default function AppShell({ children, profile }) {
 
         <nav className="flex-1 px-2.5 py-4 overflow-y-auto">
           <div className="text-[10px] text-white/35 uppercase tracking-wider px-3 pb-1.5">General</div>
-          {NAV_ITEMS.map(item => (
-            <NavLink key={item.href} item={item} active={pathname === item.href} />
-          ))}
+          {NAV_ITEMS.map(item => <NavLink key={item.href} item={item} active={pathname === item.href} />)}
 
           <div className="text-[10px] text-white/35 uppercase tracking-wider px-3 pt-4 pb-1.5">Tracking</div>
-          {TRACKING_ITEMS.map(item => (
-            <NavLink key={item.href} item={item} active={pathname === item.href} />
-          ))}
+          {TRACKING_ITEMS.map(item => <NavLink key={item.href} item={item} active={pathname === item.href} />)}
 
           {isAdmin && (
             <>
               <div className="text-[10px] text-white/35 uppercase tracking-wider px-3 pt-4 pb-1.5">Admin</div>
-              {ADMIN_NAV_ITEMS.map(item => (
-                <NavLink key={item.href} item={item} active={pathname === item.href} />
-              ))}
+              {ADMIN_NAV_ITEMS.map(item => <NavLink key={item.href} item={item} active={pathname === item.href} />)}
             </>
           )}
         </nav>
 
         <div className="p-3.5 border-t border-white/10">
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className="w-8 h-8 rounded-full bg-[#16A35A] text-white flex items-center justify-center text-[13px] font-bold flex-shrink-0">
-              {initials}
-            </div>
+          <Link href="/profile" className="flex items-center gap-2.5 mb-3 hover:bg-white/5 rounded-lg px-1.5 py-1.5 -mx-1.5 transition-colors">
+            <div className="w-8 h-8 rounded-full bg-[#16A35A] text-white flex items-center justify-center text-[13px] font-bold flex-shrink-0">{initials}</div>
             <div className="min-w-0">
               <div className="text-[12.5px] text-white truncate">{profile?.full_name || profile?.email}</div>
               <div className="text-[10px] text-white/50 capitalize">{profile?.role?.replace('_', ' ')}</div>
             </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="w-full py-2 bg-white/10 hover:bg-white/15 rounded-md text-white text-[12px] transition-colors"
-          >
+          </Link>
+          <button onClick={handleLogout} className="w-full py-2 bg-white/10 hover:bg-white/15 rounded-md text-white text-[12px] transition-colors">
             Sign out
           </button>
         </div>
       </aside>
 
-      <main className="flex-1 px-10 py-8 overflow-y-auto">
-        {children}
-      </main>
+      <main className="flex-1 px-10 py-8 overflow-y-auto">{children}</main>
     </div>
   )
 }

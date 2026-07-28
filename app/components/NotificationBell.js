@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '../../lib/supabase/client'
+import { Bell } from 'lucide-react'
 
 export default function NotificationBell() {
   const supabase = createClient()
@@ -14,12 +15,7 @@ export default function NotificationBell() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       setUserId(user.id)
-      const { data } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20)
+      const { data } = await supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20)
       setNotifications(data || [])
     }
     load()
@@ -39,40 +35,43 @@ export default function NotificationBell() {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
   }
 
-  if (!userId) return null // signed out — don't show the bell at all
+  if (!userId) return null
 
   return (
-    <div style={{ position: 'fixed', top: 16, right: 20, zIndex: 100 }}>
+    <div className="fixed top-4 right-6 z-[100]">
       <button
         onClick={() => setOpen(o => !o)}
-        style={{ position: 'relative', background: '#fff', border: '1px solid #ccc', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', fontSize: 16 }}
+        className="relative w-9 h-9 flex items-center justify-center bg-white border border-[#e5e5e0] rounded-full shadow-sm hover:shadow transition-shadow"
       >
-        🔔
+        <Bell size={16} className="text-[#0f3d28]" />
         {unreadCount > 0 && (
-          <span style={{ position: 'absolute', top: -6, right: -6, background: '#C0282A', color: '#fff', borderRadius: '50%', width: 18, height: 18, fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {unreadCount}
+          <span className="absolute -top-1 -right-1 bg-[#C0282A] text-white rounded-full min-w-[16px] h-4 px-1 text-[9px] font-bold flex items-center justify-center">
+            {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div style={{ position: 'absolute', right: 0, top: '110%', width: 320, maxHeight: 400, overflowY: 'auto', background: '#fff', border: '1px solid #ddd', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid #eee' }}>
-            <strong>Notifications</strong>
-            {unreadCount > 0 && <button onClick={markAllRead} style={{ fontSize: 12 }}>Mark all read</button>}
-          </div>
-          {notifications.length === 0 && <div style={{ padding: '14px', color: '#888' }}>No notifications yet</div>}
-          {notifications.map(n => (
-            <div
-              key={n.id}
-              onClick={() => !n.read && markAsRead(n.id)}
-              style={{ padding: '10px 14px', borderBottom: '1px solid #f0f0f0', background: n.read ? '#fff' : '#F5FAF6', cursor: n.read ? 'default' : 'pointer' }}
-            >
-              <div style={{ fontSize: 13 }}>{n.message}</div>
-              <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>{new Date(n.created_at).toLocaleString()}</div>
+        <>
+          <div className="fixed inset-0 z-[90]" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-11 w-80 max-h-[420px] overflow-y-auto bg-white border border-[#e5e5e0] rounded-xl shadow-lg z-[100]">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#f0f0f0]">
+              <span className="font-semibold text-sm text-[#0f3d28]">Notifications</span>
+              {unreadCount > 0 && <button onClick={markAllRead} className="text-[11px] text-[#0f3d28] font-semibold hover:underline">Mark all read</button>}
             </div>
-          ))}
-        </div>
+            {notifications.length === 0 && <div className="p-6 text-center text-[#999] text-xs">No notifications yet</div>}
+            {notifications.map(n => (
+              <div
+                key={n.id}
+                onClick={() => !n.read && markAsRead(n.id)}
+                className={`px-4 py-3 border-b border-[#f5f5f3] last:border-0 ${n.read ? 'bg-white' : 'bg-[#F5FAF6] cursor-pointer'}`}
+              >
+                <div className="text-[12.5px] text-[#222]">{n.message}</div>
+                <div className="text-[10.5px] text-[#999] mt-1">{new Date(n.created_at).toLocaleString()}</div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )

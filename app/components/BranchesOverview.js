@@ -11,6 +11,7 @@ function branchStats(branch) {
   branch.pills?.forEach(pill => {
     pill.sections?.forEach(section => {
       section.checklist_items?.forEach(item => {
+        if (item.parent_id) return // sub-items don't count toward branch totals
         total++
         if (item.checked) done++
       })
