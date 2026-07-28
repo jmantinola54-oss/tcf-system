@@ -142,48 +142,50 @@ export default function DeadlineCenterView({ items }) {
       </div>
 
       <div className="bg-white rounded-2xl border border-[#e5e5e0] shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left border-b border-[#eee] bg-[#FAFAF8]">
-              <th className="p-3 text-xs text-[#888]">Task</th>
-              <th className="p-3 text-xs text-[#888]">Category</th>
-              <th className="p-3 text-xs text-[#888]">Status</th>
-              <th className="p-3 text-xs text-[#888]">Deadline</th>
-              <th className="p-3 text-xs text-[#888]">Days Left</th>
-              <th className="p-3 text-xs text-[#888]">Doc</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 && (
-              <tr><td colSpan={6} className="p-10 text-center text-[#888]">No tasks match this view.</td></tr>
-            )}
-            {filtered.map(item => {
-              const status = STATUS_STYLE[item.item_status] || STATUS_STYLE.not_started
-              return (
-                <tr key={item.id} className="border-b border-[#f2f2f0] hover:bg-[#FAFAF8]">
-                  <td className="p-3">
-                    <div className="font-medium">{item.label}</div>
-                    <div className="text-[11px] text-[#999]">{item.sections?.pills?.branches?.name} / {item.sections?.pills?.name} / {item.sections?.label}</div>
-                  </td>
-                  <td className="p-3 text-[#666]">{item.category || '—'}</td>
-                  <td className="p-3">
-                    <span className="text-[10.5px] font-bold px-2.5 py-1 rounded-full" style={{ background: status.bg, color: status.color }}>{status.label}</span>
-                  </td>
-                  <td className="p-3 text-[#666]">{item.due_date}</td>
-                  <td className="p-3 text-[#666]">{daysLeftLabel(item)}</td>
-                  <td className="p-3">
-                    <div className="flex items-center gap-2">
-                      {item.doc_links?.length > 0 && <Link2 size={14} className="text-[#888]" />}
-                      <Link href={`/checklist/pill/${item.sections?.pill_id}`} className="text-[#0f3d28]">
-                        <Pencil size={14} />
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[700px]">
+            <thead>
+              <tr className="text-left border-b border-[#eee] bg-[#FAFAF8]">
+                <th className="p-3 text-xs text-[#888]">Task</th>
+                <th className="p-3 text-xs text-[#888]">Category</th>
+                <th className="p-3 text-xs text-[#888]">Status</th>
+                <th className="p-3 text-xs text-[#888]">Deadline</th>
+                <th className="p-3 text-xs text-[#888]">Days Left</th>
+                <th className="p-3 text-xs text-[#888]">Doc</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 && (
+                <tr><td colSpan={6} className="p-10 text-center text-[#888]">No tasks match this view.</td></tr>
+              )}
+              {filtered.map(item => {
+                const status = STATUS_STYLE[item.item_status] || STATUS_STYLE.not_started
+                return (
+                  <tr key={item.id} className="border-b border-[#f2f2f0] hover:bg-[#FAFAF8]">
+                    <td className="p-3">
+                      <div className="font-medium">{item.label}</div>
+                      <div className="text-[11px] text-[#999]">{item.sections?.pills?.branches?.name} / {item.sections?.pills?.name} / {item.sections?.label}</div>
+                    </td>
+                    <td className="p-3 text-[#666]">{item.category || '—'}</td>
+                    <td className="p-3">
+                      <span className="text-[10.5px] font-bold px-2.5 py-1 rounded-full" style={{ background: status.bg, color: status.color }}>{status.label}</span>
+                    </td>
+                    <td className="p-3 text-[#666]">{item.due_date}</td>
+                    <td className="p-3 text-[#666]">{daysLeftLabel(item)}</td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-2">
+                        {item.doc_links?.length > 0 && <Link2 size={14} className="text-[#888]" />}
+                        <Link href={`/checklist/pill/${item.sections?.pill_id}`} className="text-[#0f3d28]">
+                          <Pencil size={14} />
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

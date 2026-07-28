@@ -72,79 +72,81 @@ export default function UserTable({ users, currentUserId, currentUserRole }) {
       </div>
 
       <div className="bg-white rounded-2xl border border-[#e5e5e0] shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left border-b border-[#eee] bg-[#FAFAF8]">
-              <th className="p-3 text-xs text-[#888]">User</th>
-              <th className="p-3 text-xs text-[#888]">Department</th>
-              <th className="p-3 text-xs text-[#888]">Role</th>
-              <th className="p-3 text-xs text-[#888]">Status</th>
-              <th className="p-3 text-xs text-[#888]">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 && (
-              <tr><td colSpan={5} className="p-10 text-center text-[#888]">No users match this filter.</td></tr>
-            )}
-            {filtered.map(u => {
-              const s = STATUS_STYLE[u.status] || STATUS_STYLE.pending
-              const initials = (u.full_name || u.email || '?').slice(0, 1).toUpperCase()
-              const isBusy = busyId === u.id
-              return (
-                <tr key={u.id} className={`border-b border-[#f2f2f0] hover:bg-[#FAFAF8] ${isBusy ? 'opacity-50' : ''}`}>
-                  <td className="p-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#0f3d28] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">{initials}</div>
-                      <div>
-                        <div className="font-medium">{u.full_name || '—'}</div>
-                        <div className="text-[11px] text-[#999]">{u.email}</div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[700px]">
+            <thead>
+              <tr className="text-left border-b border-[#eee] bg-[#FAFAF8]">
+                <th className="p-3 text-xs text-[#888]">User</th>
+                <th className="p-3 text-xs text-[#888]">Department</th>
+                <th className="p-3 text-xs text-[#888]">Role</th>
+                <th className="p-3 text-xs text-[#888]">Status</th>
+                <th className="p-3 text-xs text-[#888]">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 && (
+                <tr><td colSpan={5} className="p-10 text-center text-[#888]">No users match this filter.</td></tr>
+              )}
+              {filtered.map(u => {
+                const s = STATUS_STYLE[u.status] || STATUS_STYLE.pending
+                const initials = (u.full_name || u.email || '?').slice(0, 1).toUpperCase()
+                const isBusy = busyId === u.id
+                return (
+                  <tr key={u.id} className={`border-b border-[#f2f2f0] hover:bg-[#FAFAF8] ${isBusy ? 'opacity-50' : ''}`}>
+                    <td className="p-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-[#0f3d28] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">{initials}</div>
+                        <div>
+                          <div className="font-medium">{u.full_name || '—'}</div>
+                          <div className="text-[11px] text-[#999]">{u.email}</div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="p-3 text-[#666]">{u.department || '—'}</td>
-                  <td className="p-3">
-                    {u.id === currentUserId ? (
-                      <span className="capitalize text-[#333]">{u.role.replace('_', ' ')}</span>
-                    ) : (
-                      <select
-                        value={u.role}
-                        disabled={currentUserRole !== 'super_admin' || isBusy}
-                        onChange={e => updateUser(u.id, { role: e.target.value })}
-                        className="border border-[#ddd] rounded-lg px-2 py-1 text-xs disabled:opacity-50"
-                      >
-                        <option value="user">user</option>
-                        <option value="admin">admin</option>
-                        <option value="super_admin">super_admin</option>
-                      </select>
-                    )}
-                  </td>
-                  <td className="p-3">
-                    <span className="text-[10.5px] font-bold px-2.5 py-1 rounded-full" style={{ background: s.bg, color: s.color }}>{s.label}</span>
-                  </td>
-                  <td className="p-3">
-                    <div className="flex gap-1.5 flex-wrap">
-                      {u.status === 'pending' && (
-                        <>
-                          <button onClick={() => updateUser(u.id, { status: 'active' }, 'user_approved', { name: u.full_name || u.email })} disabled={isBusy} className="flex items-center gap-1 px-2.5 py-1 bg-[#E1F7EC] text-[#16A35A] rounded-md text-xs font-semibold"><Check size={12} /> Approve</button>
-                          <button onClick={() => updateUser(u.id, { status: 'rejected' }, 'user_status_changed', { name: u.full_name || u.email })} disabled={isBusy} className="flex items-center gap-1 px-2.5 py-1 bg-[#F0EAF0] text-[#6C6080] rounded-md text-xs font-semibold"><X size={12} /> Reject</button>
-                        </>
+                    </td>
+                    <td className="p-3 text-[#666]">{u.department || '—'}</td>
+                    <td className="p-3">
+                      {u.id === currentUserId ? (
+                        <span className="capitalize text-[#333]">{u.role.replace('_', ' ')}</span>
+                      ) : (
+                        <select
+                          value={u.role}
+                          disabled={currentUserRole !== 'super_admin' || isBusy}
+                          onChange={e => updateUser(u.id, { role: e.target.value })}
+                          className="border border-[#ddd] rounded-lg px-2 py-1 text-xs disabled:opacity-50"
+                        >
+                          <option value="user">user</option>
+                          <option value="admin">admin</option>
+                          <option value="super_admin">super_admin</option>
+                        </select>
                       )}
-                      {u.status === 'active' && u.id !== currentUserId && (
-                        <button onClick={() => updateUser(u.id, { status: 'suspended' }, 'user_status_changed', { name: u.full_name || u.email })} disabled={isBusy} className="flex items-center gap-1 px-2.5 py-1 bg-[#FDEAEA] text-[#C0282A] rounded-md text-xs font-semibold"><Ban size={12} /> Suspend</button>
-                      )}
-                      {(u.status === 'suspended' || u.status === 'rejected') && (
-                        <button onClick={() => updateUser(u.id, { status: 'active' }, 'user_status_changed', { name: u.full_name || u.email })} disabled={isBusy} className="flex items-center gap-1 px-2.5 py-1 bg-[#E1F7EC] text-[#16A35A] rounded-md text-xs font-semibold"><RotateCcw size={12} /> Reactivate</button>
-                      )}
-                      {u.id !== currentUserId && (
-                        <button onClick={() => handleDelete(u.id, u.full_name || u.email)} disabled={isBusy} className="flex items-center gap-1 px-2.5 py-1 border border-[#ddd] rounded-md text-xs text-red-600"><Trash2 size={12} /></button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                    </td>
+                    <td className="p-3">
+                      <span className="text-[10.5px] font-bold px-2.5 py-1 rounded-full" style={{ background: s.bg, color: s.color }}>{s.label}</span>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex gap-1.5 flex-wrap">
+                        {u.status === 'pending' && (
+                          <>
+                            <button onClick={() => updateUser(u.id, { status: 'active' }, 'user_approved', { name: u.full_name || u.email })} disabled={isBusy} className="flex items-center gap-1 px-2.5 py-1 bg-[#E1F7EC] text-[#16A35A] rounded-md text-xs font-semibold"><Check size={12} /> Approve</button>
+                            <button onClick={() => updateUser(u.id, { status: 'rejected' }, 'user_status_changed', { name: u.full_name || u.email })} disabled={isBusy} className="flex items-center gap-1 px-2.5 py-1 bg-[#F0EAF0] text-[#6C6080] rounded-md text-xs font-semibold"><X size={12} /> Reject</button>
+                          </>
+                        )}
+                        {u.status === 'active' && u.id !== currentUserId && (
+                          <button onClick={() => updateUser(u.id, { status: 'suspended' }, 'user_status_changed', { name: u.full_name || u.email })} disabled={isBusy} className="flex items-center gap-1 px-2.5 py-1 bg-[#FDEAEA] text-[#C0282A] rounded-md text-xs font-semibold"><Ban size={12} /> Suspend</button>
+                        )}
+                        {(u.status === 'suspended' || u.status === 'rejected') && (
+                          <button onClick={() => updateUser(u.id, { status: 'active' }, 'user_status_changed', { name: u.full_name || u.email })} disabled={isBusy} className="flex items-center gap-1 px-2.5 py-1 bg-[#E1F7EC] text-[#16A35A] rounded-md text-xs font-semibold"><RotateCcw size={12} /> Reactivate</button>
+                        )}
+                        {u.id !== currentUserId && (
+                          <button onClick={() => handleDelete(u.id, u.full_name || u.email)} disabled={isBusy} className="flex items-center gap-1 px-2.5 py-1 border border-[#ddd] rounded-md text-xs text-red-600"><Trash2 size={12} /></button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

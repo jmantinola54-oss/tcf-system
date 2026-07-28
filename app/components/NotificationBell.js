@@ -38,7 +38,7 @@ export default function NotificationBell() {
   if (!userId) return null
 
   return (
-    <div className="fixed top-4 right-6 z-[100]">
+    <div className="fixed top-3 right-4 lg:top-4 lg:right-6 z-[100]">
       <button
         onClick={() => setOpen(o => !o)}
         className="relative w-9 h-9 flex items-center justify-center bg-white border border-[#e5e5e0] rounded-full shadow-sm hover:shadow transition-shadow"

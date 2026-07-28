@@ -184,61 +184,63 @@ export default function InventoryView({ initialItems, initialWithdrawals, curren
           )}
 
           <div className="bg-white rounded-2xl border border-[#e5e5e0] shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left border-b border-[#eee] bg-[#FAFAF8]">
-                  <th className="p-3 text-xs text-[#888]">Code</th>
-                  <th className="p-3 text-xs text-[#888]">Name</th>
-                  <th className="p-3 text-xs text-[#888]">UOM</th>
-                  <th className="p-3 text-xs text-[#888]">Qty</th>
-                  <th className="p-3 text-xs text-[#888]">Status</th>
-                  <th className="p-3 text-xs text-[#888]">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 && (
-                  <tr><td colSpan={6} className="p-8 text-center text-[#888]">No items found</td></tr>
-                )}
-                {filtered.map(item => {
-                  const status = statusFor(item)
-                  return (
-                    <Fragment key={item.id}>
-                      <tr className="border-b border-[#f2f2f0]">
-                        <td className="p-3">{item.code}</td>
-                        <td className="p-3 font-medium">{item.name}</td>
-                        <td className="p-3">{item.uom}</td>
-                        <td className="p-3 font-bold">{item.qty}</td>
-                        <td className="p-3"><span className="text-[10.5px] font-bold px-2.5 py-1 rounded-full" style={{ background: status.bg, color: status.color }}>{status.label}</span></td>
-                        <td className="p-3">
-                          <div className="flex gap-1.5">
-                            <button onClick={() => openAction(item.id, 'withdraw')} className="px-2.5 py-1 text-xs border border-[#ddd] rounded-md">↑ Withdraw</button>
-                            <button onClick={() => openAction(item.id, 'restock')} className="px-2.5 py-1 text-xs border border-[#ddd] rounded-md">↓ Restock</button>
-                            <button onClick={() => handleDelete(item)} className="px-2.5 py-1 text-xs border border-[#ddd] rounded-md text-red-600">Delete</button>
-                          </div>
-                        </td>
-                      </tr>
-                      {actionRow?.itemId === item.id && (
-                        <tr>
-                          <td colSpan={6} className="bg-[#F5FAF6] p-4">
-                            <strong className="text-sm">{actionRow.type === 'withdraw' ? 'Record withdrawal' : 'Record restock'}</strong>
-                            <div className="flex gap-2 mt-2 flex-wrap items-center">
-                              <input type="number" placeholder="Qty" value={actionForm.qty} onChange={e => setActionForm({ ...actionForm, qty: e.target.value })} className="w-20 border border-[#ddd] rounded-lg px-2 py-1.5 text-sm" />
-                              <input placeholder="Person" value={actionForm.person} onChange={e => setActionForm({ ...actionForm, person: e.target.value })} className="w-40 border border-[#ddd] rounded-lg px-2 py-1.5 text-sm" />
-                              {actionRow.type === 'withdraw' && (
-                                <input placeholder="Department" value={actionForm.department} onChange={e => setActionForm({ ...actionForm, department: e.target.value })} className="w-36 border border-[#ddd] rounded-lg px-2 py-1.5 text-sm" />
-                              )}
-                              <input placeholder="Notes" value={actionForm.notes} onChange={e => setActionForm({ ...actionForm, notes: e.target.value })} className="flex-1 min-w-[140px] border border-[#ddd] rounded-lg px-2 py-1.5 text-sm" />
-                              <button onClick={() => submitAction(item)} disabled={busy} className="px-3 py-1.5 bg-[#0f3d28] text-white rounded-lg text-xs font-semibold">Confirm</button>
-                              <button onClick={() => setActionRow(null)} className="px-3 py-1.5 border border-[#ddd] rounded-lg text-xs">Cancel</button>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[600px]">
+                <thead>
+                  <tr className="text-left border-b border-[#eee] bg-[#FAFAF8]">
+                    <th className="p-3 text-xs text-[#888]">Code</th>
+                    <th className="p-3 text-xs text-[#888]">Name</th>
+                    <th className="p-3 text-xs text-[#888]">UOM</th>
+                    <th className="p-3 text-xs text-[#888]">Qty</th>
+                    <th className="p-3 text-xs text-[#888]">Status</th>
+                    <th className="p-3 text-xs text-[#888]">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.length === 0 && (
+                    <tr><td colSpan={6} className="p-8 text-center text-[#888]">No items found</td></tr>
+                  )}
+                  {filtered.map(item => {
+                    const status = statusFor(item)
+                    return (
+                      <Fragment key={item.id}>
+                        <tr className="border-b border-[#f2f2f0]">
+                          <td className="p-3">{item.code}</td>
+                          <td className="p-3 font-medium">{item.name}</td>
+                          <td className="p-3">{item.uom}</td>
+                          <td className="p-3 font-bold">{item.qty}</td>
+                          <td className="p-3"><span className="text-[10.5px] font-bold px-2.5 py-1 rounded-full" style={{ background: status.bg, color: status.color }}>{status.label}</span></td>
+                          <td className="p-3">
+                            <div className="flex gap-1.5">
+                              <button onClick={() => openAction(item.id, 'withdraw')} className="px-2.5 py-1 text-xs border border-[#ddd] rounded-md">↑ Withdraw</button>
+                              <button onClick={() => openAction(item.id, 'restock')} className="px-2.5 py-1 text-xs border border-[#ddd] rounded-md">↓ Restock</button>
+                              <button onClick={() => handleDelete(item)} className="px-2.5 py-1 text-xs border border-[#ddd] rounded-md text-red-600">Delete</button>
                             </div>
                           </td>
                         </tr>
-                      )}
-                    </Fragment>
-                  )
-                })}
-              </tbody>
-            </table>
+                        {actionRow?.itemId === item.id && (
+                          <tr>
+                            <td colSpan={6} className="bg-[#F5FAF6] p-4">
+                              <strong className="text-sm">{actionRow.type === 'withdraw' ? 'Record withdrawal' : 'Record restock'}</strong>
+                              <div className="flex gap-2 mt-2 flex-wrap items-center">
+                                <input type="number" placeholder="Qty" value={actionForm.qty} onChange={e => setActionForm({ ...actionForm, qty: e.target.value })} className="w-20 border border-[#ddd] rounded-lg px-2 py-1.5 text-sm" />
+                                <input placeholder="Person" value={actionForm.person} onChange={e => setActionForm({ ...actionForm, person: e.target.value })} className="w-40 border border-[#ddd] rounded-lg px-2 py-1.5 text-sm" />
+                                {actionRow.type === 'withdraw' && (
+                                  <input placeholder="Department" value={actionForm.department} onChange={e => setActionForm({ ...actionForm, department: e.target.value })} className="w-36 border border-[#ddd] rounded-lg px-2 py-1.5 text-sm" />
+                                )}
+                                <input placeholder="Notes" value={actionForm.notes} onChange={e => setActionForm({ ...actionForm, notes: e.target.value })} className="flex-1 min-w-[140px] border border-[#ddd] rounded-lg px-2 py-1.5 text-sm" />
+                                <button onClick={() => submitAction(item)} disabled={busy} className="px-3 py-1.5 bg-[#0f3d28] text-white rounded-lg text-xs font-semibold">Confirm</button>
+                                <button onClick={() => setActionRow(null)} className="px-3 py-1.5 border border-[#ddd] rounded-lg text-xs">Cancel</button>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
