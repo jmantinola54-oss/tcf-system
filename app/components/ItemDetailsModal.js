@@ -99,18 +99,29 @@ export default function ItemDetailsModal({ item, categories, users, isAdmin, onC
 
   async function handleSave() {
     setSaving(true)
-    const res = await supabase.from('checklist_items').update({
-      category: form.category || null,
-      priority: form.priority,
-      item_status: form.item_status,
-      due_date: form.due_date || null,
-      remarks: form.remarks || null,
-      doc_links: form.doc_links,
-    }).eq('id', item.id)
+
+    // Non-admins can only change status, remarks, and document links.
+    // Category, priority, and due date stay whatever they already were.
+    const changes = isAdmin
+      ? {
+          category: form.category || null,
+          priority: form.priority,
+          item_status: form.item_status,
+          due_date: form.due_date || null,
+          remarks: form.remarks || null,
+          doc_links: form.doc_links,
+        }
+      : {
+          item_status: form.item_status,
+          remarks: form.remarks || null,
+          doc_links: form.doc_links,
+        }
+
+    const res = await supabase.from('checklist_items').update(changes).eq('id', item.id)
 
     if (res.error) { setSaving(false); alert('Error: ' + res.error.message); return }
 
-    await syncAssignment()
+    if (isAdmin) await syncAssignment()
     await logActivity(supabase, 'item_edited', { label: item.label })
 
     setSaving(false)
@@ -129,83 +140,95 @@ export default function ItemDetailsModal({ item, categories, users, isAdmin, onC
         <div className="p-5 space-y-4">
           <div className="text-sm font-semibold text-[#333]">{item.label}</div>
 
-          <div className="relative">
-            <label className="text-xs font-semibold text-[#666] block mb-1">Category</label>
-            <button
-              type="button"
-              onClick={function () { setShowCatDropdown(function (o) { return !o }) }}
-              className="w-full flex items-center justify-between border border-[#ddd] rounded-lg px-3 py-2 text-sm text-left"
-            >
-              <span className="flex items-center gap-2">
-                {selectedCategory && <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: selectedCategory.color }} />}
-                {form.category || '- None -'}
-              </span>
-              <ChevronDown size={14} className="text-[#999]" />
-            </button>
+          {isAdmin ? (
+            <div className="relative">
+              <label className="text-xs font-semibold text-[#666] block mb-1">Category</label>
+              <button
+                type="button"
+                onClick={function () { setShowCatDropdown(function (o) { return !o }) }}
+                className="w-full flex items-center justify-between border border-[#ddd] rounded-lg px-3 py-2 text-sm text-left"
+              >
+                <span className="flex items-center gap-2">
+                  {selectedCategory && <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: selectedCategory.color }} />}
+                  {form.category || '- None -'}
+                </span>
+                <ChevronDown size={14} className="text-[#999]" />
+              </button>
 
-            {showCatDropdown && (
-              <div className="absolute z-20 mt-1 w-full bg-white border border-[#eee] rounded-lg shadow-lg max-h-56 overflow-y-auto">
-                <button
-                  type="button"
-                  onClick={function () {
-                    setForm(function (f) {
-                      const next = Object.assign({}, f)
-                      next.category = ''
-                      return next
-                    })
-                    setShowCatDropdown(false)
-                  }}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-[#F5FAF6]"
-                >
-                  - None -
-                </button>
-                {cats.map(function (c) {
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={function () {
-                        setForm(function (f) {
-                          const next = Object.assign({}, f)
-                          next.category = c.name
-                          return next
-                        })
-                        setShowCatDropdown(false)
-                      }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-[#F5FAF6] flex items-center gap-2"
-                    >
-                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: c.color }} /> {c.name}
-                    </button>
-                  )
-                })}
-                <div className="border-t border-[#eee] p-2">
-                  {!showNewCatForm ? (
-                    <button type="button" onClick={function () { setShowNewCatForm(true) }} className="w-full flex items-center gap-1.5 text-xs font-semibold text-[#0f3d28] px-1 py-1">
-                      <Plus size={12} /> Add new category
-                    </button>
-                  ) : (
-                    <div className="space-y-2">
-                      <input
-                        autoFocus
-                        placeholder="Category name..."
-                        value={newCatName}
-                        onChange={function (e) { setNewCatName(e.target.value) }}
-                        onKeyDown={function (e) { if (e.key === 'Enter') handleCreateCategory() }}
-                        className="w-full border border-[#ddd] rounded-md px-2 py-1.5 text-xs"
-                      />
-                      <div className="flex items-center gap-2">
-                        <input type="color" value={newCatColor} onChange={function (e) { setNewCatColor(e.target.value) }} className="w-8 h-8 border border-[#ddd] rounded-md cursor-pointer flex-shrink-0" />
-                        <button type="button" onClick={handleCreateCategory} disabled={savingCat} className="flex-1 px-2 py-1.5 bg-[#0f3d28] text-white rounded-md text-xs font-semibold">
-                          {savingCat ? 'Adding...' : 'Add'}
-                        </button>
-                        <button type="button" onClick={function () { setShowNewCatForm(false) }} className="px-2 py-1.5 border border-[#ddd] rounded-md text-xs">Cancel</button>
+              {showCatDropdown && (
+                <div className="absolute z-20 mt-1 w-full bg-white border border-[#eee] rounded-lg shadow-lg max-h-56 overflow-y-auto">
+                  <button
+                    type="button"
+                    onClick={function () {
+                      setForm(function (f) {
+                        const next = Object.assign({}, f)
+                        next.category = ''
+                        return next
+                      })
+                      setShowCatDropdown(false)
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-[#F5FAF6]"
+                  >
+                    - None -
+                  </button>
+                  {cats.map(function (c) {
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={function () {
+                          setForm(function (f) {
+                            const next = Object.assign({}, f)
+                            next.category = c.name
+                            return next
+                          })
+                          setShowCatDropdown(false)
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-[#F5FAF6] flex items-center gap-2"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: c.color }} /> {c.name}
+                      </button>
+                    )
+                  })}
+                  <div className="border-t border-[#eee] p-2">
+                    {!showNewCatForm ? (
+                      <button type="button" onClick={function () { setShowNewCatForm(true) }} className="w-full flex items-center gap-1.5 text-xs font-semibold text-[#0f3d28] px-1 py-1">
+                        <Plus size={12} /> Add new category
+                      </button>
+                    ) : (
+                      <div className="space-y-2">
+                        <input
+                          autoFocus
+                          placeholder="Category name..."
+                          value={newCatName}
+                          onChange={function (e) { setNewCatName(e.target.value) }}
+                          onKeyDown={function (e) { if (e.key === 'Enter') handleCreateCategory() }}
+                          className="w-full border border-[#ddd] rounded-md px-2 py-1.5 text-xs"
+                        />
+                        <div className="flex items-center gap-2">
+                          <input type="color" value={newCatColor} onChange={function (e) { setNewCatColor(e.target.value) }} className="w-8 h-8 border border-[#ddd] rounded-md cursor-pointer flex-shrink-0" />
+                          <button type="button" onClick={handleCreateCategory} disabled={savingCat} className="flex-1 px-2 py-1.5 bg-[#0f3d28] text-white rounded-md text-xs font-semibold">
+                            {savingCat ? 'Adding...' : 'Add'}
+                          </button>
+                          <button type="button" onClick={function () { setShowNewCatForm(false) }} className="px-2 py-1.5 border border-[#ddd] rounded-md text-xs">Cancel</button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            item.category && (
+              <div>
+                <label className="text-xs font-semibold text-[#666] block mb-1">Category</label>
+                <div className="flex items-center gap-2 text-sm text-[#333]">
+                  {selectedCategory && <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: selectedCategory.color }} />}
+                  {item.category}
                 </div>
               </div>
-            )}
-          </div>
+            )
+          )}
 
           {isAdmin && (
             <div>
@@ -233,20 +256,24 @@ export default function ItemDetailsModal({ item, categories, users, isAdmin, onC
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold text-[#666] block mb-1">Priority</label>
-              <select
-                value={form.priority}
-                onChange={function (e) {
-                  const val = e.target.value
-                  setForm(function (f) {
-                    const next = Object.assign({}, f)
-                    next.priority = val
-                    return next
-                  })
-                }}
-                className="w-full border border-[#ddd] rounded-lg px-3 py-2 text-sm"
-              >
-                {PRIORITIES.map(function (p) { return <option key={p} value={p}>{p}</option> })}
-              </select>
+              {isAdmin ? (
+                <select
+                  value={form.priority}
+                  onChange={function (e) {
+                    const val = e.target.value
+                    setForm(function (f) {
+                      const next = Object.assign({}, f)
+                      next.priority = val
+                      return next
+                    })
+                  }}
+                  className="w-full border border-[#ddd] rounded-lg px-3 py-2 text-sm"
+                >
+                  {PRIORITIES.map(function (p) { return <option key={p} value={p}>{p}</option> })}
+                </select>
+              ) : (
+                <div className="border border-[#eee] bg-[#FAFAF8] rounded-lg px-3 py-2 text-sm text-[#666] capitalize">{item.priority || 'medium'}</div>
+              )}
             </div>
             <div>
               <label className="text-xs font-semibold text-[#666] block mb-1">Status</label>
@@ -269,19 +296,23 @@ export default function ItemDetailsModal({ item, categories, users, isAdmin, onC
 
           <div>
             <label className="text-xs font-semibold text-[#666] block mb-1">Due date</label>
-            <input
-              type="date"
-              value={form.due_date}
-              onChange={function (e) {
-                const val = e.target.value
-                setForm(function (f) {
-                  const next = Object.assign({}, f)
-                  next.due_date = val
-                  return next
-                })
-              }}
-              className="w-full border border-[#ddd] rounded-lg px-3 py-2 text-sm"
-            />
+            {isAdmin ? (
+              <input
+                type="date"
+                value={form.due_date}
+                onChange={function (e) {
+                  const val = e.target.value
+                  setForm(function (f) {
+                    const next = Object.assign({}, f)
+                    next.due_date = val
+                    return next
+                  })
+                }}
+                className="w-full border border-[#ddd] rounded-lg px-3 py-2 text-sm"
+              />
+            ) : (
+              <div className="border border-[#eee] bg-[#FAFAF8] rounded-lg px-3 py-2 text-sm text-[#666]">{item.due_date || 'Not set'}</div>
+            )}
           </div>
 
           <div>
