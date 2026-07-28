@@ -38,7 +38,7 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
 
   async function toggleItem() {
     const { error } = await supabase.from('checklist_items').update({ checked: !item.checked }).eq('id', item.id)
-    if (error) { alert("Couldn't update — you may not have permission.\n\n" + error.message); return }
+    if (error) { alert("Could not update - you may not have permission.\n\n" + error.message); return }
     await logActivity(supabase, item.checked ? 'item_unchecked' : 'item_checked', { label: item.label })
     router.refresh()
   }
@@ -84,7 +84,7 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
             item.checked ? 'bg-[#16A35A] border-[#16A35A]' : 'border-[#ccc] hover:border-[#0f3d28]'
           }`}
         >
-          {item.checked && <span className="text-white text-[11px] leading-none">✓</span>}
+          {item.checked && <span className="text-white text-[11px] leading-none">OK</span>}
         </button>
 
         <span className={`flex-1 text-[13.5px] ${item.checked ? 'line-through text-[#aaa]' : 'text-[#222]'}`}>
@@ -137,7 +137,7 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
             </div>
           )}
 
-          {item.doc_links?.length > 0 && (
+          {item.doc_links && item.doc_links.length > 0 && (
             <div className="relative">
               <button
                 type="button"
@@ -151,17 +151,19 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
                   <div className="fixed inset-0 z-[90]" onClick={() => setShowLinks(false)} />
                   <div className="absolute right-0 top-6 w-64 bg-white border border-[#eee] rounded-lg shadow-lg p-2 z-[100]">
                     <div className="text-[10px] font-bold text-[#888] uppercase px-1 mb-1">Document Links</div>
-                    {item.doc_links.map((link, idx) => (
-                      
-                        key={idx}
-                        href={link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block px-2 py-1.5 text-xs text-blue-600 hover:bg-[#F5FAF6] rounded-md truncate"
-                      >
-                        {link}
-                      </a>
-                    ))}
+                    {item.doc_links.map(function (link, idx) {
+                      return (
+                        
+                          key={idx}
+                          href={link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block px-2 py-1.5 text-xs text-blue-600 hover:bg-[#F5FAF6] rounded-md truncate"
+                        >
+                          {link}
+                        </a>
+                      )
+                    })}
                   </div>
                 </>
               )}
@@ -210,15 +212,15 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
         </div>
       </div>
 
-      {expanded && children.map(child => (
-        <ItemRow key={child.id} item={child} onEdit={onEdit} level={level + 1} categories={categories} />
-      ))}
+      {expanded && children.map(function (child) {
+        return <ItemRow key={child.id} item={child} onEdit={onEdit} level={level + 1} categories={categories} />
+      })}
 
       {addingSub && (
         <div className="flex gap-2 px-4 py-2 bg-[#FAFAF8]" style={{ paddingLeft: 16 + (level + 1) * 26 }}>
           <input
             autoFocus
-            placeholder="Sub-item name…"
+            placeholder="Sub-item name..."
             value={subLabel}
             onChange={e => setSubLabel(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && submitSubItem()}
