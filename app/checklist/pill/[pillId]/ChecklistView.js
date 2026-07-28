@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '../../../../lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, LayoutList, Users } from 'lucide-react'
@@ -31,6 +31,14 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
   const [viewMode, setViewMode] = useState('sections')
   const [editingItem, setEditingItem] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [categories, setCategories] = useState([])
+
+  const loadCategories = useCallback(async () => {
+    const { data } = await supabase.from('checklist_categories').select('*').order('name')
+    setCategories(data || [])
+  }, [])
+
+  useEffect(() => { loadCategories() }, [loadCategories])
 
   function toggleCollapse(key) {
     setCollapsed(prev => ({ ...prev, [key]: !prev[key] }))
@@ -171,7 +179,7 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
                 {!isCollapsed && (
                   <>
                     {tree.length === 0 && <div className="px-4 py-6 text-center text-[#999] text-xs">No items{filter !== 'all' ? ' match this filter' : ' yet'}.</div>}
-                    {tree.map(item => <ItemRow key={item.id} item={item} onEdit={setEditingItem} />)}
+                    {tree.map(item => <ItemRow key={item.id} item={item} onEdit={setEditingItem} categories={categories} />)}
 
                     {isAdmin && (
                       addingItemFor === section.id ? (
@@ -203,14 +211,14 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
             const done = allItems.filter(i => i.checked).length
             const pct = total ? Math.round((done / total) * 100) : 0
             const isCollapsed = !!collapsed['cat-' + category]
+            const catObj = categories.find(c => c.name === category)
 
             return (
               <div key={category} className="bg-white rounded-2xl border border-[#e5e5e0] shadow-sm overflow-hidden">
-                <div className="flex items-center gap-3 px-4 py-3 bg-[#0f3d28]">
+                <div className="flex items-center gap-3 px-4 py-3" style={{ background: catObj?.color || '#0f3d28' }}>
                   <button onClick={() => toggleCollapse('cat-' + category)} className="text-white/70 hover:text-white">
                     {isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
                   </button>
-                  <span className="w-6 h-6 rounded-full bg-white/15 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">{category.slice(0, 2).toUpperCase()}</span>
                   <span className="text-white font-semibold text-[13.5px] flex-1">{category}</span>
                   <span className="text-white/70 text-xs">{done}/{total}</span>
                   <div className="w-24 bg-white/15 rounded-full h-1.5 overflow-hidden hidden sm:block">
@@ -221,7 +229,7 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
                 {!isCollapsed && (
                   items.length === 0
                     ? <div className="px-4 py-6 text-center text-[#999] text-xs">No items match this filter.</div>
-                    : items.map(item => <ItemRow key={item.id} item={item} onEdit={setEditingItem} />)
+                    : items.map(item => <ItemRow key={item.id} item={item} onEdit={setEditingItem} categories={categories} />)
                 )}
               </div>
             )
@@ -229,7 +237,14 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
         </div>
       )}
 
-      {editingItem && <ItemDetailsModal item={editingItem} onClose={() => setEditingItem(null)} />}
+      {editingItem && (
+        <ItemDetailsModal
+          item={editingItem}
+          categories={categories}
+          onCategoriesChange={loadCategories}
+          onClose={() => setEditingItem(null)}
+        />
+      )}
     </div>
   )
 }

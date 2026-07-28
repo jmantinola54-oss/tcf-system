@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { createClient } from '../../lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -22,6 +22,16 @@ export default function TasksView({ tasks }) {
   const router = useRouter()
   const [filter, setFilter] = useState('active')
   const [editingItem, setEditingItem] = useState(null)
+  const [categories, setCategories] = useState([])
+  const [showRemarksId, setShowRemarksId] = useState(null)
+  const [showLinksId, setShowLinksId] = useState(null)
+
+  const loadCategories = useCallback(async () => {
+    const { data } = await supabase.from('checklist_categories').select('*').order('name')
+    setCategories(data || [])
+  }, [])
+
+  useEffect(() => { loadCategories() }, [loadCategories])
 
   const visible = filter === 'active' ? tasks.filter(t => !t.checked) : tasks
 
@@ -53,6 +63,7 @@ export default function TasksView({ tasks }) {
         {visible.length === 0 && <div className="p-10 text-center text-[#888] text-sm">Nothing active right now.</div>}
         {visible.map((item, idx) => {
           const status = STATUS_STYLE[item.item_status] || STATUS_STYLE.not_started
+          const catObj = categories.find(c => c.name === item.category)
           return (
             <div key={item.id} className={`flex items-center gap-3 px-4 py-3 hover:bg-[#FAFAF8] ${idx !== visible.length - 1 ? 'border-b border-[#f2f2f0]' : ''}`}>
               <button
@@ -70,14 +81,53 @@ export default function TasksView({ tasks }) {
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
-                {item.category && <span className="text-[10px] bg-[#f2f2f0] text-[#666] px-2 py-1 rounded-full whitespace-nowrap">{item.category}</span>}
+                {item.category && (
+                  <span className="text-[10px] font-bold px-2 py-1 rounded-full text-white whitespace-nowrap" style={{ background: catObj?.color || '#0f3d28' }}>
+                    {item.category}
+                  </span>
+                )}
                 {item.due_date && (
                   <span className="text-[10.5px] text-[#888] bg-[#f2f2f0] px-2 py-1 rounded-full whitespace-nowrap">
                     {new Date(item.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </span>
                 )}
-                {item.remarks && <StickyNote size={13} className="text-[#B06800]" />}
-                {item.doc_links?.length > 0 && <Link2 size={13} className="text-[#888]" />}
+
+                {item.remarks && (
+                  <div className="relative">
+                    <button type="button" onClick={() => { setShowRemarksId(showRemarksId === item.id ? null : item.id); setShowLinksId(null) }} className="text-[#B06800] hover:opacity-70">
+                      <StickyNote size={13} />
+                    </button>
+                    {showRemarksId === item.id && (
+                      <>
+                        <div className="fixed inset-0 z-[90]" onClick={() => setShowRemarksId(null)} />
+                        <div className="absolute right-0 top-6 w-56 bg-white border border-[#eee] rounded-lg shadow-lg p-3 z-[100]">
+                          <div className="text-[10px] font-bold text-[#B06800] uppercase mb-1">Remarks</div>
+                          <div className="text-xs text-[#333] whitespace-pre-wrap">{item.remarks}</div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {item.doc_links?.length > 0 && (
+                  <div className="relative">
+                    <button type="button" onClick={() => { setShowLinksId(showLinksId === item.id ? null : item.id); setShowRemarksId(null) }} className="text-[#888] hover:text-[#0f3d28]">
+                      <Link2 size={13} />
+                    </button>
+                    {showLinksId === item.id && (
+                      <>
+                        <div className="fixed inset-0 z-[90]" onClick={() => setShowLinksId(null)} />
+                        <div className="absolute right-0 top-6 w-64 bg-white border border-[#eee] rounded-lg shadow-lg p-2 z-[100]">
+                          <div className="text-[10px] font-bold text-[#888] uppercase px-1 mb-1">Document Links</div>
+                          {item.doc_links.map((link, i) => (
+                            <a key={i} href={link} target="_blank" rel="noreferrer" className="block px-2 py-1.5 text-xs text-blue-600 hover:bg-[#F5FAF6] rounded-md truncate">{link}</a>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
                 {item.priority && item.priority !== 'medium' && (
                   <span className={`text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${item.priority === 'critical' ? 'bg-[#FDEAEA] text-[#C0282A]' : 'bg-[#FFF3DC] text-[#B06800]'}`}>{item.priority}</span>
                 )}
@@ -90,7 +140,9 @@ export default function TasksView({ tasks }) {
         })}
       </div>
 
-      {editingItem && <ItemDetailsModal item={editingItem} onClose={() => setEditingItem(null)} />}
+      {editingItem && (
+        <ItemDetailsModal item={editingItem} categories={categories} onCategoriesChange={loadCategories} onClose={() => setEditingItem(null)} />
+      )}
     </div>
   )
 }

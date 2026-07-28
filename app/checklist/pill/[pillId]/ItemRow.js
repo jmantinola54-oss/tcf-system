@@ -20,7 +20,7 @@ function initialsOf(name) {
   return name.trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase()
 }
 
-export default function ItemRow({ item, onEdit, level = 0 }) {
+export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
   const supabase = createClient()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -28,10 +28,13 @@ export default function ItemRow({ item, onEdit, level = 0 }) {
   const [addingSub, setAddingSub] = useState(false)
   const [subLabel, setSubLabel] = useState('')
   const [busy, setBusy] = useState(false)
+  const [showRemarks, setShowRemarks] = useState(false)
+  const [showLinks, setShowLinks] = useState(false)
 
   const status = STATUS_STYLE[item.item_status] || STATUS_STYLE.not_started
   const children = item.children || []
   const assignee = item.task_assignments?.[0]?.profiles
+  const categoryObj = categories.find(c => c.name === item.category)
 
   async function toggleItem() {
     const { error } = await supabase.from('checklist_items').update({ checked: !item.checked }).eq('id', item.id)
@@ -97,18 +100,74 @@ export default function ItemRow({ item, onEdit, level = 0 }) {
               {initialsOf(assignee.full_name || assignee.email)}
             </span>
           )}
+
           {item.category && (
-            <span className="w-6 h-6 rounded-full bg-[#0f3d28] text-white text-[10px] font-bold flex items-center justify-center" title={item.category}>
-              {item.category.slice(0, 2).toUpperCase()}
+            <span
+              className="text-[10px] font-bold px-2 py-1 rounded-full text-white whitespace-nowrap"
+              style={{ background: categoryObj?.color || '#0f3d28' }}
+            >
+              {item.category}
             </span>
           )}
+
           {item.due_date && (
             <span className="text-[10.5px] text-[#888] bg-[#f2f2f0] px-2 py-1 rounded-full whitespace-nowrap">
               {new Date(item.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </span>
           )}
-          {item.remarks && <StickyNote size={13} className="text-[#B06800]" />}
-          {item.doc_links?.length > 0 && <Link2 size={13} className="text-[#888]" />}
+
+          {item.remarks && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => { setShowRemarks(o => !o); setShowLinks(false) }}
+                className="text-[#B06800] hover:opacity-70"
+              >
+                <StickyNote size={13} />
+              </button>
+              {showRemarks && (
+                <>
+                  <div className="fixed inset-0 z-[90]" onClick={() => setShowRemarks(false)} />
+                  <div className="absolute right-0 top-6 w-56 bg-white border border-[#eee] rounded-lg shadow-lg p-3 z-[100]">
+                    <div className="text-[10px] font-bold text-[#B06800] uppercase mb-1">Remarks</div>
+                    <div className="text-xs text-[#333] whitespace-pre-wrap">{item.remarks}</div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {item.doc_links?.length > 0 && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => { setShowLinks(o => !o); setShowRemarks(false) }}
+                className="text-[#888] hover:text-[#0f3d28]"
+              >
+                <Link2 size={13} />
+              </button>
+              {showLinks && (
+                <>
+                  <div className="fixed inset-0 z-[90]" onClick={() => setShowLinks(false)} />
+                  <div className="absolute right-0 top-6 w-64 bg-white border border-[#eee] rounded-lg shadow-lg p-2 z-[100]">
+                    <div className="text-[10px] font-bold text-[#888] uppercase px-1 mb-1">Document Links</div>
+                    {item.doc_links.map((link, idx) => (
+                      
+                        key={idx}
+                        href={link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block px-2 py-1.5 text-xs text-blue-600 hover:bg-[#F5FAF6] rounded-md truncate"
+                      >
+                        {link}
+                      </a>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {item.priority && item.priority !== 'medium' && (
             <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${item.priority === 'critical' ? 'bg-[#FDEAEA] text-[#C0282A]' : 'bg-[#FFF3DC] text-[#B06800]'}`}>
               {item.priority}
@@ -127,29 +186,32 @@ export default function ItemRow({ item, onEdit, level = 0 }) {
               <MoreVertical size={14} />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-6 bg-white border border-[#eee] rounded-lg shadow-lg py-1 w-36 z-10">
-                {level === 0 && (
+              <>
+                <div className="fixed inset-0 z-[90]" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 top-6 bg-white border border-[#eee] rounded-lg shadow-lg py-1 w-36 z-[100]">
+                  {level === 0 && (
+                    <button
+                      onClick={() => { setMenuOpen(false); setAddingSub(true); setExpanded(true) }}
+                      className="w-full text-left px-3 py-1.5 text-xs text-[#204A2E] hover:bg-[#F5FAF6] flex items-center gap-1.5"
+                    >
+                      <Plus size={12} /> Add sub-item
+                    </button>
+                  )}
                   <button
-                    onClick={() => { setMenuOpen(false); setAddingSub(true); setExpanded(true) }}
-                    className="w-full text-left px-3 py-1.5 text-xs text-[#204A2E] hover:bg-[#F5FAF6] flex items-center gap-1.5"
+                    onClick={() => { setMenuOpen(false); handleDelete() }}
+                    className="w-full text-left px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-1.5"
                   >
-                    <Plus size={12} /> Add sub-item
+                    <Trash2 size={12} /> Delete
                   </button>
-                )}
-                <button
-                  onClick={() => { setMenuOpen(false); handleDelete() }}
-                  className="w-full text-left px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-1.5"
-                >
-                  <Trash2 size={12} /> Delete
-                </button>
-              </div>
+                </div>
+              </>
             )}
           </div>
         </div>
       </div>
 
       {expanded && children.map(child => (
-        <ItemRow key={child.id} item={child} onEdit={onEdit} level={level + 1} />
+        <ItemRow key={child.id} item={child} onEdit={onEdit} level={level + 1} categories={categories} />
       ))}
 
       {addingSub && (
