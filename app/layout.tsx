@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import NotificationBell from './components/NotificationBell'
 import AppShell from './components/AppShell'
+import HoldScreen from './components/HoldScreen'
 import { createClient } from '../lib/supabase/server'
 
 const geistSans = Geist({
@@ -34,20 +35,43 @@ export default async function RootLayout({
     profile = data
   }
 
+  // Not signed in at all (login/signup pages) -> render as-is, no shell.
+  if (!profile) {
+    return (
+      <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+        <body className="min-h-full flex flex-col">{children}</body>
+      </html>
+    )
+  }
+
+  // Still filling out onboarding -> let that page render on its own, no shell.
+  if (!profile.onboarding_completed) {
+    return (
+      <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+        <body className="min-h-full flex flex-col">{children}</body>
+      </html>
+    )
+  }
+
+  // Pending / suspended / rejected -> full-screen hold, never the dashboard.
+  if (profile.status !== 'active') {
+    return (
+      <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+        <body className="min-h-full flex flex-col">
+          <HoldScreen profile={profile} />
+        </body>
+      </html>
+    )
+  }
+
+  // Active -> the real app.
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        {profile ? (
-          <AppShell profile={profile}>
-            <NotificationBell />
-            {children}
-          </AppShell>
-        ) : (
-          children
-        )}
+        <AppShell profile={profile}>
+          <NotificationBell />
+          {children}
+        </AppShell>
       </body>
     </html>
   )
