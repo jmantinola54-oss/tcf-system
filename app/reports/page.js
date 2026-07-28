@@ -14,14 +14,8 @@ export default async function ReportsPage() {
 
   const { data: branches } = await supabase
     .from('branches')
-    .select('name, pills(name, sections(label, checklist_items(label, checked, category, priority, item_status, due_date))))')
+    .select('id, name, pills(id, name, sections(id, label, checklist_items(id, label, checked, category, priority, item_status, due_date)))')
     .order('sort_order')
 
-  return (
-    <div>
-      <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-1">Reports</h1>
-      <p className="text-[#6E9A7C] text-sm mb-6">Export checklist data as CSV or PDF</p>
-      <ReportsView branches={branches || []} />
-    </div>
-  )
+  return <ReportsView branches={branches || []} />
 }

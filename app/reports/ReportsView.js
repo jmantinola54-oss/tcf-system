@@ -1,146 +1,158 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { FileDown, FileText, Network } from 'lucide-react'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
+import { BarChart3, AlertTriangle } from 'lucide-react'
 
-function flattenItems(branches) {
-  const rows = []
+function dayDiff(dateStr) {
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const due = new Date(dateStr); due.setHours(0, 0, 0, 0)
+  return Math.round((due - today) / 86400000)
+}
+
+function analyze(branches) {
+  let total = 0, done = 0
+  const overdue = []
+  const upcoming = []
+  const categoryCounts = {}
+
   branches.forEach(branch => {
     (branch.pills || []).forEach(pill => {
       (pill.sections || []).forEach(section => {
         (section.checklist_items || []).forEach(item => {
-          rows.push({
-            branch: branch.name,
-            pill: pill.name,
-            section: section.label,
-            item: item.label,
-            category: item.category || '',
-            priority: item.priority || 'medium',
-            status: item.item_status || 'not_started',
-            dueDate: item.due_date || '',
-            checked: item.checked ? 'Yes' : 'No',
-          })
-        })
-      })
-    })
-  })
-  return rows
-}
-
-function branchSummary(branches) {
-  return branches.map(branch => {
-    let total = 0, done = 0
-    ;(branch.pills || []).forEach(pill => {
-      (pill.sections || []).forEach(section => {
-        (section.checklist_items || []).forEach(item => {
           total++
           if (item.checked) done++
+
+          const cat = item.category || 'Uncategorized'
+          categoryCounts[cat] = (categoryCounts[cat] || 0) + 1
+
+          if (item.due_date && !item.checked) {
+            const diff = dayDiff(item.due_date)
+            const entry = { ...item, branchName: branch.name, pillName: pill.name, sectionLabel: section.label, diff }
+            if (diff < 0) overdue.push(entry)
+            else if (diff <= 7) upcoming.push(entry)
+          }
         })
       })
     })
-    return { name: branch.name, total, done, pct: total ? Math.round((done / total) * 100) : 0 }
   })
+
+  overdue.sort((a, b) => a.diff - b.diff)
+  upcoming.sort((a, b) => a.diff - b.diff)
+
+  return {
+    total, done,
+    pct: total ? Math.round((done / total) * 100) : 0,
+    overdue, upcoming,
+    categories: Object.entries(categoryCounts).sort(([, a], [, b]) => b - a),
+  }
 }
 
 export default function ReportsView({ branches }) {
-  const [busy, setBusy] = useState(false)
-  const rows = useMemo(() => flattenItems(branches), [branches])
-  const summary = useMemo(() => branchSummary(branches), [branches])
+  const [selectedBranchId, setSelectedBranchId] = useState(branches[0]?.id || 'all')
 
-  function exportCSV() {
-    setBusy(true)
-    const headers = ['Branch', 'Pill', 'Section', 'Item', 'Category', 'Priority', 'Status', 'Due Date', 'Checked']
-    const csvRows = [headers.join(',')]
-    rows.forEach(r => {
-      const line = [r.branch, r.pill, r.section, r.item, r.category, r.priority, r.status, r.dueDate, r.checked]
-        .map(v => `"${String(v).replace(/"/g, '""')}"`)
-        .join(',')
-      csvRows.push(line)
-    })
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `tcf-checklist-report-${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-    setBusy(false)
-  }
-
-  function exportPDF() {
-    setBusy(true)
-    const doc = new jsPDF({ orientation: 'landscape' })
-
-    doc.setFontSize(16)
-    doc.text('TCF Production Checklist — Report', 14, 15)
-    doc.setFontSize(10)
-    doc.setTextColor(100)
-    doc.text(`Generated ${new Date().toLocaleString()}`, 14, 21)
-
-    autoTable(doc, {
-      startY: 28,
-      head: [['Branch', 'Complied', 'Total', '%']],
-      body: summary.map(s => [s.name, s.done, s.total, `${s.pct}%`]),
-      theme: 'grid',
-      headStyles: { fillColor: [15, 61, 40] },
-    })
-
-    autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 10,
-      head: [['Branch', 'Pill', 'Section', 'Item', 'Category', 'Priority', 'Status', 'Due Date', 'Checked']],
-      body: rows.map(r => [r.branch, r.pill, r.section, r.item, r.category, r.priority, r.status, r.dueDate, r.checked]),
-      theme: 'striped',
-      headStyles: { fillColor: [15, 61, 40] },
-      styles: { fontSize: 7 },
-    })
-
-    doc.save(`tcf-checklist-report-${new Date().toISOString().slice(0, 10)}.pdf`)
-    setBusy(false)
-  }
+  const scoped = selectedBranchId === 'all' ? branches : branches.filter(b => b.id === selectedBranchId)
+  const report = useMemo(() => analyze(scoped), [scoped])
+  const scopeName = selectedBranchId === 'all' ? 'All Branches' : branches.find(b => b.id === selectedBranchId)?.name
 
   return (
     <div>
-      <div className="flex gap-3 mb-8">
-        <button
-          onClick={exportCSV}
-          disabled={busy || rows.length === 0}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white border border-[#ddd] rounded-lg text-sm font-semibold text-[#0f3d28] hover:bg-[#F5FAF6] disabled:opacity-40"
-        >
-          <FileDown size={15} /> Export CSV
-        </button>
-        <button
-          onClick={exportPDF}
-          disabled={busy || rows.length === 0}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#0f3d28] text-white rounded-lg text-sm font-semibold hover:bg-[#14512f] disabled:opacity-40"
-        >
-          <FileText size={15} /> Export PDF
-        </button>
-      </div>
-
-      <div className="flex items-center gap-2 mb-3">
-        <Network size={16} className="text-[#0f3d28]" />
-        <h2 className="font-display text-base font-bold text-[#0f3d28]">Branch Summary</h2>
-      </div>
-
-      {summary.length === 0 && (
-        <div className="bg-white rounded-2xl border border-[#e5e5e0] p-10 text-center text-[#888] text-sm">
-          No data to report yet.
+      <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
+        <div className="flex items-center gap-2">
+          <BarChart3 size={20} className="text-[#0f3d28]" />
+          <h1 className="font-display text-2xl font-bold text-[#0f3d28]">Executive Report</h1>
         </div>
-      )}
+        <select
+          value={selectedBranchId}
+          onChange={e => setSelectedBranchId(e.target.value)}
+          className="border border-[#ddd] rounded-lg px-3 py-2 text-sm"
+        >
+          <option value="all">All Branches</option>
+          {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
+      </div>
+      <p className="text-[#6E9A7C] text-sm mb-6">
+        Snapshot for {scopeName} · generated {new Date().toLocaleString()}
+      </p>
 
-      <div className="bg-white rounded-2xl border border-[#e5e5e0] shadow-sm overflow-hidden">
-        {summary.map((s, idx) => (
-          <div key={s.name} className={`flex items-center gap-4 px-5 py-3.5 ${idx !== summary.length - 1 ? 'border-b border-[#f2f2f0]' : ''}`}>
-            <span className="flex-1 font-semibold text-[13.5px] text-[#222]">{s.name}</span>
-            <span className="text-xs text-[#888] whitespace-nowrap">{s.done}/{s.total} complied</span>
-            <div className="w-32 bg-[#eee] rounded-full h-1.5 overflow-hidden">
-              <div className="h-full bg-[#16A35A] rounded-full" style={{ width: `${s.pct}%` }} />
-            </div>
-            <span className="font-bold text-sm text-[#0A1F12] w-10 text-right">{s.pct}%</span>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white rounded-2xl border border-[#e5e5e0] p-5 shadow-sm">
+          <div className="text-[10.5px] font-bold text-[#6E9A7C] uppercase tracking-wider mb-2">Overall Completion</div>
+          <div className="font-display text-3xl font-extrabold text-[#0A1F12]">{report.pct}%</div>
+          <div className="text-xs text-[#888] mt-1">{report.done} of {report.total} items</div>
+        </div>
+        <div className="bg-white rounded-2xl border border-[#e5e5e0] p-5 shadow-sm">
+          <div className="text-[10.5px] font-bold text-[#6E9A7C] uppercase tracking-wider mb-2">Items Complied</div>
+          <div className="font-display text-3xl font-extrabold text-[#16A35A]">{report.done}</div>
+        </div>
+        <div className="bg-white rounded-2xl border border-[#e5e5e0] p-5 shadow-sm">
+          <div className="text-[10.5px] font-bold text-[#6E9A7C] uppercase tracking-wider mb-2">Overdue</div>
+          <div className="font-display text-3xl font-extrabold" style={{ color: report.overdue.length ? '#C0282A' : '#0A1F12' }}>{report.overdue.length}</div>
+          <div className="text-xs text-[#888] mt-1">{report.overdue.length ? 'Needs attention' : 'None'}</div>
+        </div>
+        <div className="bg-white rounded-2xl border border-[#e5e5e0] p-5 shadow-sm">
+          <div className="text-[10.5px] font-bold text-[#6E9A7C] uppercase tracking-wider mb-2">Upcoming (7d)</div>
+          <div className="font-display text-3xl font-extrabold text-[#0A1F12]">{report.upcoming.length}</div>
+          <div className="text-xs text-[#888] mt-1">Due soon</div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-[#e5e5e0] shadow-sm p-5 mb-6">
+        <h3 className="font-display font-bold text-[#0f3d28] mb-4">Completion by Category</h3>
+        {report.categories.length === 0 ? (
+          <p className="text-sm text-[#888]">No items yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {report.categories.map(([cat, count]) => (
+              <div key={cat} className="flex items-center justify-between py-1.5 border-b border-[#f2f2f0] last:border-0">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#0f3d28]" />
+                  <span className="text-sm text-[#333]">{cat}</span>
+                </div>
+                <span className="text-xs text-[#888]">{count} items</span>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-[#e5e5e0] shadow-sm p-5 mb-6">
+        <h3 className="font-display font-bold text-[#0f3d28] mb-4 flex items-center gap-2">
+          <AlertTriangle size={16} className="text-[#C0282A]" /> Overdue Items
+        </h3>
+        {report.overdue.length === 0 ? (
+          <p className="text-sm text-[#888]">Nothing to show.</p>
+        ) : (
+          <div className="space-y-2">
+            {report.overdue.map(item => (
+              <div key={item.id} className="flex items-center justify-between py-2 border-b border-[#f2f2f0] last:border-0">
+                <div>
+                  <div className="text-sm font-medium">{item.label}</div>
+                  <div className="text-[11px] text-[#999]">{item.branchName} / {item.pillName} / {item.sectionLabel}</div>
+                </div>
+                <span className="text-xs font-bold text-[#C0282A]">{Math.abs(item.diff)}d overdue</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-[#e5e5e0] shadow-sm p-5">
+        <h3 className="font-display font-bold text-[#0f3d28] mb-4">Upcoming Deadlines</h3>
+        {report.upcoming.length === 0 ? (
+          <p className="text-sm text-[#888]">Nothing to show.</p>
+        ) : (
+          <div className="space-y-2">
+            {report.upcoming.map(item => (
+              <div key={item.id} className="flex items-center justify-between py-2 border-b border-[#f2f2f0] last:border-0">
+                <div>
+                  <div className="text-sm font-medium">{item.label}</div>
+                  <div className="text-[11px] text-[#999]">{item.branchName} / {item.pillName} / {item.sectionLabel}</div>
+                </div>
+                <span className="text-xs font-bold text-[#B06800]">{item.diff === 0 ? 'Today' : `${item.diff}d left`}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

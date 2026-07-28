@@ -13,12 +13,21 @@ export default async function InventoryPage() {
   if (!profile || profile.status !== 'active') redirect('/')
 
   const { data: items } = await supabase.from('inventory_items').select('*').order('code')
+  const { data: withdrawals } = await supabase
+    .from('inventory_withdrawals')
+    .select('id, qty, person, created_at, inventory_items(name)')
+    .order('created_at', { ascending: false })
+    .limit(8)
 
   return (
-    <div style={{ padding: '40px', fontFamily: 'sans-serif', maxWidth: '1100px', margin: '0 auto' }}>
-      <h1 style={{ color: '#0f3d28' }}>Inventory</h1>
-      <p><a href="/">← Back home</a></p>
-      <InventoryView initialItems={items || []} currentUserName={profile.full_name || user.email} />
+    <div>
+      <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-1">Inventory</h1>
+      <p className="text-[#6E9A7C] text-sm mb-6">Stock levels, withdrawals & restocks</p>
+      <InventoryView
+        initialItems={items || []}
+        initialWithdrawals={withdrawals || []}
+        currentUserName={profile.full_name || user.email}
+      />
     </div>
   )
 }
