@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '../../../../lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Pencil, MoreVertical, Link2, Trash2, ChevronRight, ChevronDown, StickyNote, Plus } from 'lucide-react'
+import { Pencil, MoreVertical, Link2, Trash2, ChevronRight, ChevronDown, StickyNote, Plus, ArrowUp, ArrowDown, Check, X, Ban } from 'lucide-react'
 import { logActivity } from '../../../lib/audit'
 
 const STATUS_STYLE = {
@@ -17,7 +17,11 @@ const STATUS_STYLE = {
 
 function initialsOf(name) {
   if (!name) return '?'
-  return name.trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase()
+  return name.trim().split(/\s+/).map(function (p) { return p[0] }).slice(0, 2).join('').toUpperCase()
+}
+
+function openUrl(url) {
+  window.open(url, '_blank', 'noreferrer')
 }
 
 export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
@@ -33,8 +37,9 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
 
   const status = STATUS_STYLE[item.item_status] || STATUS_STYLE.not_started
   const children = item.children || []
-  const assignee = item.task_assignments?.[0]?.profiles
-  const categoryObj = categories.find(c => c.name === item.category)
+  const assignee = item.task_assignments && item.task_assignments[0] ? item.task_assignments[0].profiles : null
+  const categoryObj = categories.find(function (c) { return c.name === item.category })
+  const links = item.doc_links || []
 
   async function toggleItem() {
     const { error } = await supabase.from('checklist_items').update({ checked: !item.checked }).eq('id', item.id)
@@ -43,11 +48,61 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
     router.refresh()
   }
 
+  async function setStatus(newChecked, newItemStatus) {
+    setMenuOpen(false)
+    const changes = { checked: newChecked }
+    if (newItemStatus) changes.item_status = newItemStatus
+    const { error } = await supabase.from('checklist_items').update(changes).eq('id', item.id)
+    if (error) { alert('Error: ' + error.message); return }
+    await logActivity(supabase, 'item_edited', { label: item.label })
+    router.refresh()
+  }
+
+  async function handleRename() {
+    setMenuOpen(false)
+    const label = prompt('Rename item:', item.label)
+    if (!label || !label.trim() || label.trim() === item.label) return
+    const { error } = await supabase.from('checklist_items').update({ label: label.trim() }).eq('id', item.id)
+    if (error) { alert('Error: ' + error.message); return }
+    await logActivity(supabase, 'item_edited', { label: label.trim() })
+    router.refresh()
+  }
+
+  async function handleEditRemark() {
+    setMenuOpen(false)
+    const remarks = prompt('Remark:', item.remarks || '')
+    if (remarks === null) return
+    const { error } = await supabase.from('checklist_items').update({ remarks: remarks.trim() || null }).eq('id', item.id)
+    if (error) { alert('Error: ' + error.message); return }
+    await logActivity(supabase, 'item_edited', { label: item.label })
+    router.refresh()
+  }
+
   async function handleDelete() {
+    setMenuOpen(false)
     if (!confirm(`Delete "${item.label}"${children.length ? ' and its sub-items' : ''}?`)) return
     const { error } = await supabase.from('checklist_items').delete().eq('id', item.id)
     if (error) { alert('Error: ' + error.message); return }
     await logActivity(supabase, 'item_deleted', { label: item.label })
+    router.refresh()
+  }
+
+  async function handleMove(direction) {
+    setMenuOpen(false)
+    setBusy(true)
+    let query = supabase.from('checklist_items').select('id, sort_order').eq('section_id', item.section_id).order('sort_order')
+    query = item.parent_id ? query.eq('parent_id', item.parent_id) : query.is('parent_id', null)
+    const { data: siblings } = await query
+    setBusy(false)
+    if (!siblings) return
+    const idx = siblings.findIndex(function (s) { return s.id === item.id })
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (swapIdx < 0 || swapIdx >= siblings.length) return
+    const other = siblings[swapIdx]
+    setBusy(true)
+    await supabase.from('checklist_items').update({ sort_order: other.sort_order != null ? other.sort_order : swapIdx }).eq('id', item.id)
+    await supabase.from('checklist_items').update({ sort_order: item.sort_order != null ? item.sort_order : idx }).eq('id', other.id)
+    setBusy(false)
     router.refresh()
   }
 
@@ -64,6 +119,15 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
     router.refresh()
   }
 
+  function handleLinkClick() {
+    if (links.length === 1) {
+      openUrl(links[0])
+    } else {
+      setShowLinks(function (o) { return !o })
+      setShowRemarks(false)
+    }
+  }
+
   return (
     <div>
       <div
@@ -71,7 +135,7 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
         style={{ paddingLeft: 16 + level * 26 }}
       >
         {children.length > 0 ? (
-          <button onClick={() => setExpanded(e => !e)} className="text-[#999] flex-shrink-0">
+          <button onClick={function () { setExpanded(function (e) { return !e }) }} className="text-[#999] flex-shrink-0">
             {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
         ) : (
@@ -104,7 +168,7 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
           {item.category && (
             <span
               className="text-[10px] font-bold px-2 py-1 rounded-full text-white whitespace-nowrap"
-              style={{ background: categoryObj?.color || '#0f3d28' }}
+              style={{ background: categoryObj ? categoryObj.color : '#0f3d28' }}
             >
               {item.category}
             </span>
@@ -120,48 +184,50 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => { setShowRemarks(o => !o); setShowLinks(false) }}
+                onClick={function () { setShowRemarks(function (o) { return !o }); setShowLinks(false) }}
                 className="text-[#B06800] hover:opacity-70"
+                title="View remarks"
               >
                 <StickyNote size={13} />
               </button>
               {showRemarks && (
                 <>
-                  <div className="fixed inset-0 z-[90]" onClick={() => setShowRemarks(false)} />
+                  <div className="fixed inset-0 z-[90]" onClick={function () { setShowRemarks(false) }} />
                   <div className="absolute right-0 top-6 w-56 bg-white border border-[#eee] rounded-lg shadow-lg p-3 z-[100]">
                     <div className="text-[10px] font-bold text-[#B06800] uppercase mb-1">Remarks</div>
-                    <div className="text-xs text-[#333] whitespace-pre-wrap">{item.remarks}</div>
+                    <div className="text-xs text-[#333] whitespace-pre-wrap mb-2">{item.remarks}</div>
+                    <button onClick={function () { setShowRemarks(false); handleEditRemark() }} className="text-[10px] font-semibold text-[#0f3d28] hover:underline">Edit</button>
                   </div>
                 </>
               )}
             </div>
           )}
 
-          {item.doc_links && item.doc_links.length > 0 && (
+          {links.length > 0 && (
             <div className="relative">
               <button
                 type="button"
-                onClick={() => { setShowLinks(o => !o); setShowRemarks(false) }}
+                onClick={handleLinkClick}
                 className="text-[#888] hover:text-[#0f3d28]"
+                title={links.length === 1 ? 'Open document' : links.length + ' document links'}
               >
                 <Link2 size={13} />
               </button>
-              {showLinks && (
+              {showLinks && links.length > 1 && (
                 <>
-                  <div className="fixed inset-0 z-[90]" onClick={() => setShowLinks(false)} />
+                  <div className="fixed inset-0 z-[90]" onClick={function () { setShowLinks(false) }} />
                   <div className="absolute right-0 top-6 w-64 bg-white border border-[#eee] rounded-lg shadow-lg p-2 z-[100]">
                     <div className="text-[10px] font-bold text-[#888] uppercase px-1 mb-1">Document Links</div>
-                    {item.doc_links.map(function (link, idx) {
+                    {links.map(function (link, idx) {
                       return (
-                        
+                        <button
                           key={idx}
-                          href={link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block px-2 py-1.5 text-xs text-blue-600 hover:bg-[#F5FAF6] rounded-md truncate"
+                          type="button"
+                          onClick={function () { openUrl(link) }}
+                          className="block w-full text-left px-2 py-1.5 text-xs text-blue-600 hover:bg-[#F5FAF6] rounded-md truncate"
                         >
                           {link}
-                        </a>
+                        </button>
                       )
                     })}
                   </div>
@@ -179,28 +245,55 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
             {status.label}
           </span>
 
-          <button onClick={() => onEdit(item)} className="text-[#999] hover:text-[#0f3d28] opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={function () { onEdit(item) }} className="text-[#999] hover:text-[#0f3d28] opacity-0 group-hover:opacity-100 transition-opacity">
             <Pencil size={14} />
           </button>
 
           <div className="relative">
-            <button onClick={() => setMenuOpen(o => !o)} className="text-[#999] hover:text-[#0f3d28] opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={function () { setMenuOpen(function (o) { return !o }) }} disabled={busy} className="text-[#999] hover:text-[#0f3d28] opacity-0 group-hover:opacity-100 transition-opacity">
               <MoreVertical size={14} />
             </button>
             {menuOpen && (
               <>
-                <div className="fixed inset-0 z-[90]" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 top-6 bg-white border border-[#eee] rounded-lg shadow-lg py-1 w-36 z-[100]">
+                <div className="fixed inset-0 z-[90]" onClick={function () { setMenuOpen(false) }} />
+                <div className="absolute right-0 top-6 bg-white border border-[#eee] rounded-lg shadow-lg py-1 w-48 z-[100]">
                   {level === 0 && (
                     <button
-                      onClick={() => { setMenuOpen(false); setAddingSub(true); setExpanded(true) }}
+                      onClick={function () { setMenuOpen(false); setAddingSub(true); setExpanded(true) }}
                       className="w-full text-left px-3 py-1.5 text-xs text-[#204A2E] hover:bg-[#F5FAF6] flex items-center gap-1.5"
                     >
                       <Plus size={12} /> Add sub-item
                     </button>
                   )}
+                  <button onClick={handleEditRemark} className="w-full text-left px-3 py-1.5 text-xs text-[#333] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                    <StickyNote size={12} /> Edit remark
+                  </button>
+                  <button onClick={function () { setMenuOpen(false); onEdit(item) }} className="w-full text-left px-3 py-1.5 text-xs text-[#333] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                    <Pencil size={12} /> Edit details
+                  </button>
+                  <button onClick={handleRename} className="w-full text-left px-3 py-1.5 text-xs text-[#333] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                    <Pencil size={12} /> Rename
+                  </button>
+                  <div className="border-t border-[#eee] my-1" />
+                  <button onClick={function () { handleMove('up') }} disabled={busy} className="w-full text-left px-3 py-1.5 text-xs text-[#333] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                    <ArrowUp size={12} /> Move up
+                  </button>
+                  <button onClick={function () { handleMove('down') }} disabled={busy} className="w-full text-left px-3 py-1.5 text-xs text-[#333] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                    <ArrowDown size={12} /> Move down
+                  </button>
+                  <div className="border-t border-[#eee] my-1" />
+                  <button onClick={function () { setStatus(true, 'completed') }} className="w-full text-left px-3 py-1.5 text-xs text-[#16A35A] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                    <Check size={12} /> Mark complied
+                  </button>
+                  <button onClick={function () { setStatus(false, 'not_started') }} className="w-full text-left px-3 py-1.5 text-xs text-[#B06800] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                    <X size={12} /> Mark not complied
+                  </button>
+                  <button onClick={function () { setStatus(false, 'na') }} className="w-full text-left px-3 py-1.5 text-xs text-[#6C6080] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                    <Ban size={12} /> Mark N/A (exclude)
+                  </button>
+                  <div className="border-t border-[#eee] my-1" />
                   <button
-                    onClick={() => { setMenuOpen(false); handleDelete() }}
+                    onClick={handleDelete}
                     className="w-full text-left px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-1.5"
                   >
                     <Trash2 size={12} /> Delete
@@ -222,12 +315,12 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
             autoFocus
             placeholder="Sub-item name..."
             value={subLabel}
-            onChange={e => setSubLabel(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && submitSubItem()}
+            onChange={function (e) { setSubLabel(e.target.value) }}
+            onKeyDown={function (e) { if (e.key === 'Enter') submitSubItem() }}
             className="flex-1 border border-[#ddd] rounded-lg px-3 py-1.5 text-xs"
           />
           <button onClick={submitSubItem} disabled={busy} className="px-3 py-1.5 bg-[#0f3d28] text-white rounded-lg text-xs font-semibold">Add</button>
-          <button onClick={() => setAddingSub(false)} className="px-3 py-1.5 border border-[#ddd] rounded-lg text-xs">Cancel</button>
+          <button onClick={function () { setAddingSub(false) }} className="px-3 py-1.5 border border-[#ddd] rounded-lg text-xs">Cancel</button>
         </div>
       )}
     </div>
