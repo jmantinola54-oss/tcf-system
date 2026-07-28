@@ -9,7 +9,7 @@ export default function OnboardingForm({ profile, branches }) {
   const router = useRouter()
   const [fullName, setFullName] = useState(profile?.full_name || '')
   const [department, setDepartment] = useState('')
-  const [branchId, setBranchId] = useState(branches[0]?.id || '')
+  const [branchId, setBranchId] = useState(branches[0] ? branches[0].id : '')
   const [position, setPosition] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -26,9 +26,21 @@ export default function OnboardingForm({ profile, branches }) {
       onboarding_completed: true,
     }).eq('id', profile.id)
 
+    if (error) { setSaving(false); alert('Error: ' + error.message); return }
+
+    // Re-read the account's real status so we send them to exactly the
+    // right place, instead of bouncing through "/" and relying on
+    // middleware to redirect a second time.
+    const statusRes = await supabase.from('profiles').select('status').eq('id', profile.id).single()
+    const finalStatus = statusRes.data ? statusRes.data.status : 'pending'
+
     setSaving(false)
-    if (error) { alert('Error: ' + error.message); return }
-    router.push('/')
+
+    if (finalStatus === 'active') {
+      router.push('/')
+    } else {
+      router.push('/hold')
+    }
     router.refresh()
   }
 
@@ -42,25 +54,25 @@ export default function OnboardingForm({ profile, branches }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-[#666] block mb-1">Full name</label>
-            <input value={fullName} onChange={e => setFullName(e.target.value)} className="w-full border border-[#ddd] rounded-lg px-3 py-2.5 text-sm" />
+            <input value={fullName} onChange={function (e) { setFullName(e.target.value) }} className="w-full border border-[#ddd] rounded-lg px-3 py-2.5 text-sm" />
           </div>
 
           <div>
             <label className="text-xs font-semibold text-[#666] block mb-1">Department</label>
-            <input value={department} onChange={e => setDepartment(e.target.value)} placeholder="e.g. Administrative, Nursing…" className="w-full border border-[#ddd] rounded-lg px-3 py-2.5 text-sm" />
+            <input value={department} onChange={function (e) { setDepartment(e.target.value) }} placeholder="e.g. Administrative, Nursing..." className="w-full border border-[#ddd] rounded-lg px-3 py-2.5 text-sm" />
           </div>
 
           <div>
             <label className="text-xs font-semibold text-[#666] block mb-1">Branch</label>
-            <select value={branchId} onChange={e => setBranchId(e.target.value)} className="w-full border border-[#ddd] rounded-lg px-3 py-2.5 text-sm">
+            <select value={branchId} onChange={function (e) { setBranchId(e.target.value) }} className="w-full border border-[#ddd] rounded-lg px-3 py-2.5 text-sm">
               {branches.length === 0 && <option value="">No branches yet</option>}
-              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              {branches.map(function (b) { return <option key={b.id} value={b.id}>{b.name}</option> })}
             </select>
           </div>
 
           <div>
             <label className="text-xs font-semibold text-[#666] block mb-1">Position <span className="text-[#aaa] font-normal">(optional)</span></label>
-            <input value={position} onChange={e => setPosition(e.target.value)} className="w-full border border-[#ddd] rounded-lg px-3 py-2.5 text-sm" />
+            <input value={position} onChange={function (e) { setPosition(e.target.value) }} className="w-full border border-[#ddd] rounded-lg px-3 py-2.5 text-sm" />
           </div>
 
           <button
@@ -68,7 +80,7 @@ export default function OnboardingForm({ profile, branches }) {
             disabled={saving}
             className="w-full py-3 bg-[#0f3d28] hover:bg-[#14512f] text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 mt-2"
           >
-            {saving ? 'Saving…' : 'Continue'}
+            {saving ? 'Saving...' : 'Continue'}
           </button>
         </form>
       </div>
