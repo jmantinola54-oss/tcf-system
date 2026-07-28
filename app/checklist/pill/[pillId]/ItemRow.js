@@ -243,13 +243,13 @@ export default function ItemRow({ item, onEdit, level, categories, isAdmin }) {
             {status.label}
           </span>
 
-          <button onClick={function () { onEdit(item) }} className="text-[#999] hover:text-[#0f3d28] opacity-0 group-hover:opacity-100 transition-opacity" title="Edit details">
+          <button onClick={function () { onEdit(item) }} className="text-[#999] hover:text-[#0f3d28]" title="Edit details">
             <Pencil size={14} />
           </button>
 
           {isAdmin && (
             <div className="relative">
-              <button onClick={function () { togglePopup('menu') }} disabled={busy} className="text-[#999] hover:text-[#0f3d28] opacity-0 group-hover:opacity-100 transition-opacity">
+              <button onClick={function () { togglePopup('menu') }} disabled={busy} className="text-[#999] hover:text-[#0f3d28]">
                 <MoreVertical size={14} />
               </button>
               {openPopup === 'menu' && (
