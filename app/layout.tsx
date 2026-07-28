@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import NotificationBell from './components/NotificationBell'
 import AppShell from './components/AppShell'
-import HoldScreen from './components/HoldScreen'
 import { createClient } from '../lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -37,43 +36,21 @@ export default async function RootLayout({
     profile = data
   }
 
-  // Not signed in at all (login/signup pages) -> render as-is, no shell.
-  if (!profile) {
-    return (
-      <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-        <body className="min-h-full flex flex-col">{children}</body>
-      </html>
-    )
-  }
+  // Any page middleware has already routed correctly (login, signup,
+  // onboarding, hold) except the real active-user app gets the shell.
+  const showShell = profile && profile.onboarding_completed && profile.status === 'active'
 
-  // Still filling out onboarding -> let that page render on its own, no shell.
-  if (!profile.onboarding_completed) {
-    return (
-      <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-        <body className="min-h-full flex flex-col">{children}</body>
-      </html>
-    )
-  }
-
-  // Pending / suspended / rejected -> full-screen hold, never the dashboard.
-  if (profile.status !== 'active') {
-    return (
-      <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-        <body className="min-h-full flex flex-col">
-          <HoldScreen profile={profile} />
-        </body>
-      </html>
-    )
-  }
-
-  // Active -> the real app.
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <AppShell profile={profile}>
-          <NotificationBell />
-          {children}
-        </AppShell>
+        {showShell ? (
+          <AppShell profile={profile}>
+            <NotificationBell />
+            {children}
+          </AppShell>
+        ) : (
+          children
+        )}
       </body>
     </html>
   )
