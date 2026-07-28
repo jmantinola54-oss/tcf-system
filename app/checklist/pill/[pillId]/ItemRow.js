@@ -24,76 +24,83 @@ function openUrl(url) {
   window.open(url, '_blank', 'noreferrer')
 }
 
-export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
+export default function ItemRow({ item, onEdit, level, categories, isAdmin }) {
+  const lvl = level || 0
+  const cats = categories || []
   const supabase = createClient()
   const router = useRouter()
-  const [menuOpen, setMenuOpen] = useState(false)
+
+  // Only ONE popup can be open at a time: null | 'remarks' | 'links' | 'menu'
+  const [openPopup, setOpenPopup] = useState(null)
   const [expanded, setExpanded] = useState(true)
   const [addingSub, setAddingSub] = useState(false)
   const [subLabel, setSubLabel] = useState('')
   const [busy, setBusy] = useState(false)
-  const [showRemarks, setShowRemarks] = useState(false)
-  const [showLinks, setShowLinks] = useState(false)
 
   const status = STATUS_STYLE[item.item_status] || STATUS_STYLE.not_started
   const children = item.children || []
   const assignee = item.task_assignments && item.task_assignments[0] ? item.task_assignments[0].profiles : null
-  const categoryObj = categories.find(function (c) { return c.name === item.category })
+  const categoryObj = cats.find(function (c) { return c.name === item.category })
   const links = item.doc_links || []
 
+  function togglePopup(name) {
+    setOpenPopup(function (cur) { return cur === name ? null : name })
+  }
+
   async function toggleItem() {
-    const { error } = await supabase.from('checklist_items').update({ checked: !item.checked }).eq('id', item.id)
-    if (error) { alert("Could not update - you may not have permission.\n\n" + error.message); return }
+    const res = await supabase.from('checklist_items').update({ checked: !item.checked }).eq('id', item.id)
+    if (res.error) { alert("Could not update - you may not have permission.\n\n" + res.error.message); return }
     await logActivity(supabase, item.checked ? 'item_unchecked' : 'item_checked', { label: item.label })
     router.refresh()
   }
 
   async function setStatus(newChecked, newItemStatus) {
-    setMenuOpen(false)
+    setOpenPopup(null)
     const changes = { checked: newChecked }
     if (newItemStatus) changes.item_status = newItemStatus
-    const { error } = await supabase.from('checklist_items').update(changes).eq('id', item.id)
-    if (error) { alert('Error: ' + error.message); return }
+    const res = await supabase.from('checklist_items').update(changes).eq('id', item.id)
+    if (res.error) { alert('Error: ' + res.error.message); return }
     await logActivity(supabase, 'item_edited', { label: item.label })
     router.refresh()
   }
 
   async function handleRename() {
-    setMenuOpen(false)
+    setOpenPopup(null)
     const label = prompt('Rename item:', item.label)
     if (!label || !label.trim() || label.trim() === item.label) return
-    const { error } = await supabase.from('checklist_items').update({ label: label.trim() }).eq('id', item.id)
-    if (error) { alert('Error: ' + error.message); return }
+    const res = await supabase.from('checklist_items').update({ label: label.trim() }).eq('id', item.id)
+    if (res.error) { alert('Error: ' + res.error.message); return }
     await logActivity(supabase, 'item_edited', { label: label.trim() })
     router.refresh()
   }
 
   async function handleEditRemark() {
-    setMenuOpen(false)
+    setOpenPopup(null)
     const remarks = prompt('Remark:', item.remarks || '')
     if (remarks === null) return
-    const { error } = await supabase.from('checklist_items').update({ remarks: remarks.trim() || null }).eq('id', item.id)
-    if (error) { alert('Error: ' + error.message); return }
+    const res = await supabase.from('checklist_items').update({ remarks: remarks.trim() || null }).eq('id', item.id)
+    if (res.error) { alert('Error: ' + res.error.message); return }
     await logActivity(supabase, 'item_edited', { label: item.label })
     router.refresh()
   }
 
   async function handleDelete() {
-    setMenuOpen(false)
-    if (!confirm(`Delete "${item.label}"${children.length ? ' and its sub-items' : ''}?`)) return
-    const { error } = await supabase.from('checklist_items').delete().eq('id', item.id)
-    if (error) { alert('Error: ' + error.message); return }
+    setOpenPopup(null)
+    if (!confirm('Delete "' + item.label + '"' + (children.length ? ' and its sub-items' : '') + '?')) return
+    const res = await supabase.from('checklist_items').delete().eq('id', item.id)
+    if (res.error) { alert('Error: ' + res.error.message); return }
     await logActivity(supabase, 'item_deleted', { label: item.label })
     router.refresh()
   }
 
   async function handleMove(direction) {
-    setMenuOpen(false)
+    setOpenPopup(null)
     setBusy(true)
     let query = supabase.from('checklist_items').select('id, sort_order').eq('section_id', item.section_id).order('sort_order')
     query = item.parent_id ? query.eq('parent_id', item.parent_id) : query.is('parent_id', null)
-    const { data: siblings } = await query
+    const res = await query
     setBusy(false)
+    const siblings = res.data
     if (!siblings) return
     const idx = siblings.findIndex(function (s) { return s.id === item.id })
     const swapIdx = direction === 'up' ? idx - 1 : idx + 1
@@ -109,13 +116,14 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
   async function submitSubItem() {
     if (!subLabel.trim()) return
     setBusy(true)
-    const { error } = await supabase.from('checklist_items').insert({
+    const res = await supabase.from('checklist_items').insert({
       section_id: item.section_id, parent_id: item.id, label: subLabel.trim(),
     })
     setBusy(false)
-    if (error) { alert('Error: ' + error.message); return }
+    if (res.error) { alert('Error: ' + res.error.message); return }
     await logActivity(supabase, 'item_added', { label: subLabel.trim() })
-    setSubLabel(''); setAddingSub(false)
+    setSubLabel('')
+    setAddingSub(false)
     router.refresh()
   }
 
@@ -123,16 +131,15 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
     if (links.length === 1) {
       openUrl(links[0])
     } else {
-      setShowLinks(function (o) { return !o })
-      setShowRemarks(false)
+      togglePopup('links')
     }
   }
 
   return (
     <div>
       <div
-        className="flex items-center gap-3 px-4 py-2.5 border-b border-[#f2f2f0] hover:bg-[#FAFAF8] group"
-        style={{ paddingLeft: 16 + level * 26 }}
+        className="flex items-center gap-3 px-4 py-2.5 border-b border-[#f2f2f0] hover:bg-[#FAFAF8] group relative"
+        style={{ paddingLeft: 16 + lvl * 26, zIndex: openPopup ? 20 : 'auto' }}
       >
         {children.length > 0 ? (
           <button onClick={function () { setExpanded(function (e) { return !e }) }} className="text-[#999] flex-shrink-0">
@@ -144,14 +151,12 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
 
         <button
           onClick={toggleItem}
-          className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-            item.checked ? 'bg-[#16A35A] border-[#16A35A]' : 'border-[#ccc] hover:border-[#0f3d28]'
-          }`}
+          className={'w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ' + (item.checked ? 'bg-[#16A35A] border-[#16A35A]' : 'border-[#ccc] hover:border-[#0f3d28]')}
         >
           {item.checked && <span className="text-white text-[11px] leading-none">OK</span>}
         </button>
 
-        <span className={`flex-1 text-[13.5px] ${item.checked ? 'line-through text-[#aaa]' : 'text-[#222]'}`}>
+        <span className={'flex-1 text-[13.5px] ' + (item.checked ? 'line-through text-[#aaa]' : 'text-[#222]')}>
           {item.label}
         </span>
 
@@ -182,62 +187,47 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
 
           {item.remarks && (
             <div className="relative">
-              <button
-                type="button"
-                onClick={function () { setShowRemarks(function (o) { return !o }); setShowLinks(false) }}
-                className="text-[#B06800] hover:opacity-70"
-                title="View remarks"
-              >
+              <button type="button" onClick={function () { togglePopup('remarks') }} className="text-[#B06800] hover:opacity-70" title="View remarks">
                 <StickyNote size={13} />
               </button>
-              {showRemarks && (
-                <>
-                  <div className="fixed inset-0 z-[90]" onClick={function () { setShowRemarks(false) }} />
+              {openPopup === 'remarks' && (
+                <div>
+                  <div className="fixed inset-0 z-[90]" onClick={function () { setOpenPopup(null) }} />
                   <div className="absolute right-0 top-6 w-56 bg-white border border-[#eee] rounded-lg shadow-lg p-3 z-[100]">
                     <div className="text-[10px] font-bold text-[#B06800] uppercase mb-1">Remarks</div>
                     <div className="text-xs text-[#333] whitespace-pre-wrap mb-2">{item.remarks}</div>
-                    <button onClick={function () { setShowRemarks(false); handleEditRemark() }} className="text-[10px] font-semibold text-[#0f3d28] hover:underline">Edit</button>
+                    <button onClick={handleEditRemark} className="text-[10px] font-semibold text-[#0f3d28] hover:underline">Edit</button>
                   </div>
-                </>
+                </div>
               )}
             </div>
           )}
 
           {links.length > 0 && (
             <div className="relative">
-              <button
-                type="button"
-                onClick={handleLinkClick}
-                className="text-[#888] hover:text-[#0f3d28]"
-                title={links.length === 1 ? 'Open document' : links.length + ' document links'}
-              >
+              <button type="button" onClick={handleLinkClick} className="text-[#888] hover:text-[#0f3d28]" title={links.length === 1 ? 'Open document' : links.length + ' document links'}>
                 <Link2 size={13} />
               </button>
-              {showLinks && links.length > 1 && (
-                <>
-                  <div className="fixed inset-0 z-[90]" onClick={function () { setShowLinks(false) }} />
+              {openPopup === 'links' && links.length > 1 && (
+                <div>
+                  <div className="fixed inset-0 z-[90]" onClick={function () { setOpenPopup(null) }} />
                   <div className="absolute right-0 top-6 w-64 bg-white border border-[#eee] rounded-lg shadow-lg p-2 z-[100]">
                     <div className="text-[10px] font-bold text-[#888] uppercase px-1 mb-1">Document Links</div>
                     {links.map(function (link, idx) {
                       return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={function () { openUrl(link) }}
-                          className="block w-full text-left px-2 py-1.5 text-xs text-blue-600 hover:bg-[#F5FAF6] rounded-md truncate"
-                        >
+                        <button key={idx} type="button" onClick={function () { openUrl(link) }} className="block w-full text-left px-2 py-1.5 text-xs text-blue-600 hover:bg-[#F5FAF6] rounded-md truncate">
                           {link}
                         </button>
                       )
                     })}
                   </div>
-                </>
+                </div>
               )}
             </div>
           )}
 
           {item.priority && item.priority !== 'medium' && (
-            <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${item.priority === 'critical' ? 'bg-[#FDEAEA] text-[#C0282A]' : 'bg-[#FFF3DC] text-[#B06800]'}`}>
+            <span className={'text-[10px] font-bold px-2 py-1 rounded-full ' + (item.priority === 'critical' ? 'bg-[#FDEAEA] text-[#C0282A]' : 'bg-[#FFF3DC] text-[#B06800]')}>
               {item.priority}
             </span>
           )}
@@ -245,72 +235,70 @@ export default function ItemRow({ item, onEdit, level = 0, categories = [] }) {
             {status.label}
           </span>
 
-          <button onClick={function () { onEdit(item) }} className="text-[#999] hover:text-[#0f3d28] opacity-0 group-hover:opacity-100 transition-opacity">
-            <Pencil size={14} />
-          </button>
-
-          <div className="relative">
-            <button onClick={function () { setMenuOpen(function (o) { return !o }) }} disabled={busy} className="text-[#999] hover:text-[#0f3d28] opacity-0 group-hover:opacity-100 transition-opacity">
-              <MoreVertical size={14} />
+          {isAdmin && (
+            <button onClick={function () { onEdit(item) }} className="text-[#999] hover:text-[#0f3d28] opacity-0 group-hover:opacity-100 transition-opacity">
+              <Pencil size={14} />
             </button>
-            {menuOpen && (
-              <>
-                <div className="fixed inset-0 z-[90]" onClick={function () { setMenuOpen(false) }} />
-                <div className="absolute right-0 top-6 bg-white border border-[#eee] rounded-lg shadow-lg py-1 w-48 z-[100]">
-                  {level === 0 && (
-                    <button
-                      onClick={function () { setMenuOpen(false); setAddingSub(true); setExpanded(true) }}
-                      className="w-full text-left px-3 py-1.5 text-xs text-[#204A2E] hover:bg-[#F5FAF6] flex items-center gap-1.5"
-                    >
-                      <Plus size={12} /> Add sub-item
+          )}
+
+          {isAdmin && (
+            <div className="relative">
+              <button onClick={function () { togglePopup('menu') }} disabled={busy} className="text-[#999] hover:text-[#0f3d28] opacity-0 group-hover:opacity-100 transition-opacity">
+                <MoreVertical size={14} />
+              </button>
+              {openPopup === 'menu' && (
+                <div>
+                  <div className="fixed inset-0 z-[90]" onClick={function () { setOpenPopup(null) }} />
+                  <div className="absolute right-0 top-6 bg-white border border-[#eee] rounded-lg shadow-lg py-1 w-48 z-[100]">
+                    {lvl === 0 && (
+                      <button onClick={function () { setOpenPopup(null); setAddingSub(true); setExpanded(true) }} className="w-full text-left px-3 py-1.5 text-xs text-[#204A2E] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                        <Plus size={12} /> Add sub-item
+                      </button>
+                    )}
+                    <button onClick={handleEditRemark} className="w-full text-left px-3 py-1.5 text-xs text-[#333] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                      <StickyNote size={12} /> Edit remark
                     </button>
-                  )}
-                  <button onClick={handleEditRemark} className="w-full text-left px-3 py-1.5 text-xs text-[#333] hover:bg-[#F5FAF6] flex items-center gap-1.5">
-                    <StickyNote size={12} /> Edit remark
-                  </button>
-                  <button onClick={function () { setMenuOpen(false); onEdit(item) }} className="w-full text-left px-3 py-1.5 text-xs text-[#333] hover:bg-[#F5FAF6] flex items-center gap-1.5">
-                    <Pencil size={12} /> Edit details
-                  </button>
-                  <button onClick={handleRename} className="w-full text-left px-3 py-1.5 text-xs text-[#333] hover:bg-[#F5FAF6] flex items-center gap-1.5">
-                    <Pencil size={12} /> Rename
-                  </button>
-                  <div className="border-t border-[#eee] my-1" />
-                  <button onClick={function () { handleMove('up') }} disabled={busy} className="w-full text-left px-3 py-1.5 text-xs text-[#333] hover:bg-[#F5FAF6] flex items-center gap-1.5">
-                    <ArrowUp size={12} /> Move up
-                  </button>
-                  <button onClick={function () { handleMove('down') }} disabled={busy} className="w-full text-left px-3 py-1.5 text-xs text-[#333] hover:bg-[#F5FAF6] flex items-center gap-1.5">
-                    <ArrowDown size={12} /> Move down
-                  </button>
-                  <div className="border-t border-[#eee] my-1" />
-                  <button onClick={function () { setStatus(true, 'completed') }} className="w-full text-left px-3 py-1.5 text-xs text-[#16A35A] hover:bg-[#F5FAF6] flex items-center gap-1.5">
-                    <Check size={12} /> Mark complied
-                  </button>
-                  <button onClick={function () { setStatus(false, 'not_started') }} className="w-full text-left px-3 py-1.5 text-xs text-[#B06800] hover:bg-[#F5FAF6] flex items-center gap-1.5">
-                    <X size={12} /> Mark not complied
-                  </button>
-                  <button onClick={function () { setStatus(false, 'na') }} className="w-full text-left px-3 py-1.5 text-xs text-[#6C6080] hover:bg-[#F5FAF6] flex items-center gap-1.5">
-                    <Ban size={12} /> Mark N/A (exclude)
-                  </button>
-                  <div className="border-t border-[#eee] my-1" />
-                  <button
-                    onClick={handleDelete}
-                    className="w-full text-left px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-1.5"
-                  >
-                    <Trash2 size={12} /> Delete
-                  </button>
+                    <button onClick={function () { setOpenPopup(null); onEdit(item) }} className="w-full text-left px-3 py-1.5 text-xs text-[#333] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                      <Pencil size={12} /> Edit details
+                    </button>
+                    <button onClick={handleRename} className="w-full text-left px-3 py-1.5 text-xs text-[#333] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                      <Pencil size={12} /> Rename
+                    </button>
+                    <div className="border-t border-[#eee] my-1" />
+                    <button onClick={function () { handleMove('up') }} disabled={busy} className="w-full text-left px-3 py-1.5 text-xs text-[#333] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                      <ArrowUp size={12} /> Move up
+                    </button>
+                    <button onClick={function () { handleMove('down') }} disabled={busy} className="w-full text-left px-3 py-1.5 text-xs text-[#333] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                      <ArrowDown size={12} /> Move down
+                    </button>
+                    <div className="border-t border-[#eee] my-1" />
+                    <button onClick={function () { setStatus(true, 'completed') }} className="w-full text-left px-3 py-1.5 text-xs text-[#16A35A] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                      <Check size={12} /> Mark complied
+                    </button>
+                    <button onClick={function () { setStatus(false, 'not_started') }} className="w-full text-left px-3 py-1.5 text-xs text-[#B06800] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                      <X size={12} /> Mark not complied
+                    </button>
+                    <button onClick={function () { setStatus(false, 'na') }} className="w-full text-left px-3 py-1.5 text-xs text-[#6C6080] hover:bg-[#F5FAF6] flex items-center gap-1.5">
+                      <Ban size={12} /> Mark N/A (exclude)
+                    </button>
+                    <div className="border-t border-[#eee] my-1" />
+                    <button onClick={handleDelete} className="w-full text-left px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-1.5">
+                      <Trash2 size={12} /> Delete
+                    </button>
+                  </div>
                 </div>
-              </>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {expanded && children.map(function (child) {
-        return <ItemRow key={child.id} item={child} onEdit={onEdit} level={level + 1} categories={categories} />
+        return <ItemRow key={child.id} item={child} onEdit={onEdit} level={lvl + 1} categories={cats} isAdmin={isAdmin} />
       })}
 
       {addingSub && (
-        <div className="flex gap-2 px-4 py-2 bg-[#FAFAF8]" style={{ paddingLeft: 16 + (level + 1) * 26 }}>
+        <div className="flex gap-2 px-4 py-2 bg-[#FAFAF8]" style={{ paddingLeft: 16 + (lvl + 1) * 26 }}>
           <input
             autoFocus
             placeholder="Sub-item name..."

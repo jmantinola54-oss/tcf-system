@@ -9,9 +9,9 @@ import ItemDetailsModal from '../../../components/ItemDetailsModal'
 import { logActivity } from '../../../lib/audit'
 
 function buildTree(items) {
-  const sorted = [...items].sort(function (a, b) { return (a.sort_order || 0) - (b.sort_order || 0) })
+  const sorted = items.slice().sort(function (a, b) { return (a.sort_order || 0) - (b.sort_order || 0) })
   const byId = {}
-  sorted.forEach(function (i) { byId[i.id] = { ...i, children: [] } })
+  sorted.forEach(function (i) { byId[i.id] = Object.assign({}, i, { children: [] }) })
   const top = []
   sorted.forEach(function (i) {
     if (i.parent_id && byId[i.parent_id]) byId[i.parent_id].children.push(byId[i.id])
@@ -33,42 +33,55 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
   const [editingItem, setEditingItem] = useState(null)
   const [busy, setBusy] = useState(false)
   const [categories, setCategories] = useState([])
+  const [users, setUsers] = useState([])
 
   const loadCategories = useCallback(async function () {
-    const { data } = await supabase.from('checklist_categories').select('*').order('name')
-    setCategories(data || [])
+    const res = await supabase.from('checklist_categories').select('*').order('name')
+    setCategories(res.data || [])
   }, [])
 
+  const loadUsers = useCallback(async function () {
+    if (!isAdmin) return
+    const res = await supabase.from('profiles').select('id, full_name, email').eq('status', 'active').order('full_name')
+    setUsers(res.data || [])
+  }, [isAdmin])
+
   useEffect(function () { loadCategories() }, [loadCategories])
+  useEffect(function () { loadUsers() }, [loadUsers])
 
   function toggleCollapse(key) {
-    setCollapsed(function (prev) { return { ...prev, [key]: !prev[key] } })
+    setCollapsed(function (prev) {
+      const next = Object.assign({}, prev)
+      next[key] = !prev[key]
+      return next
+    })
   }
 
   async function addSection() {
     if (!newSectionLabel.trim()) return
     setBusy(true)
-    const { error } = await supabase.from('sections').insert({ pill_id: pillId, label: newSectionLabel.trim(), sort_order: initialSections.length })
+    const res = await supabase.from('sections').insert({ pill_id: pillId, label: newSectionLabel.trim(), sort_order: initialSections.length })
     setBusy(false)
-    if (error) { alert('Error: ' + error.message); return }
+    if (res.error) { alert('Error: ' + res.error.message); return }
     await logActivity(supabase, 'section_added', { name: newSectionLabel.trim() })
-    setNewSectionLabel(''); setAddingSection(false)
+    setNewSectionLabel('')
+    setAddingSection(false)
     router.refresh()
   }
 
   async function renameSection(section) {
     const label = prompt('Rename section:', section.label)
     if (!label || !label.trim() || label.trim() === section.label) return
-    const { error } = await supabase.from('sections').update({ label: label.trim() }).eq('id', section.id)
-    if (error) { alert('Error: ' + error.message); return }
+    const res = await supabase.from('sections').update({ label: label.trim() }).eq('id', section.id)
+    if (res.error) { alert('Error: ' + res.error.message); return }
     await logActivity(supabase, 'section_renamed', { name: label.trim() })
     router.refresh()
   }
 
   async function deleteSection(section) {
-    if (!confirm(`Delete "${section.label}" and all its items?`)) return
-    const { error } = await supabase.from('sections').delete().eq('id', section.id)
-    if (error) { alert('Error: ' + error.message); return }
+    if (!confirm('Delete "' + section.label + '" and all its items?')) return
+    const res = await supabase.from('sections').delete().eq('id', section.id)
+    if (res.error) { alert('Error: ' + res.error.message); return }
     await logActivity(supabase, 'section_deleted', { name: section.label })
     router.refresh()
   }
@@ -77,11 +90,15 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
     const text = (newItemLabel[sectionId] || '').trim()
     if (!text) return
     setBusy(true)
-    const { error } = await supabase.from('checklist_items').insert({ section_id: sectionId, label: text })
+    const res = await supabase.from('checklist_items').insert({ section_id: sectionId, label: text })
     setBusy(false)
-    if (error) { alert('Error: ' + error.message); return }
+    if (res.error) { alert('Error: ' + res.error.message); return }
     await logActivity(supabase, 'item_added', { label: text })
-    setNewItemLabel(function (prev) { return { ...prev, [sectionId]: '' } })
+    setNewItemLabel(function (prev) {
+      const next = Object.assign({}, prev)
+      next[sectionId] = ''
+      return next
+    })
     setAddingItemFor(null)
     router.refresh()
   }
@@ -123,7 +140,7 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
         <div className="flex bg-[#F0EAF0] rounded-lg p-1">
           {[{ key: 'all', label: 'All' }, { key: 'complied', label: 'Complied' }, { key: 'notcomplied', label: 'Not Complied' }].map(function (f) {
             return (
-              <button key={f.key} onClick={function () { setFilter(f.key) }} className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${filter === f.key ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#6C6080]'}`}>
+              <button key={f.key} onClick={function () { setFilter(f.key) }} className={'px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (filter === f.key ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#6C6080]')}>
                 {f.label}
               </button>
             )
@@ -131,10 +148,10 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
         </div>
 
         <div className="flex bg-[#F0EAF0] rounded-lg p-1">
-          <button onClick={function () { setViewMode('sections') }} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${viewMode === 'sections' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#6C6080]'}`}>
+          <button onClick={function () { setViewMode('sections') }} className={'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (viewMode === 'sections' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#6C6080]')}>
             <LayoutList size={13} /> Sections
           </button>
-          <button onClick={function () { setViewMode('category') }} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${viewMode === 'category' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#6C6080]'}`}>
+          <button onClick={function () { setViewMode('category') }} className={'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (viewMode === 'category' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#6C6080]')}>
             <Users size={13} /> By Category
           </button>
         </div>
@@ -163,8 +180,8 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
             const isCollapsed = !!collapsed[section.id]
 
             return (
-              <div key={section.id} className="bg-white rounded-2xl border border-[#e5e5e0] shadow-sm overflow-hidden">
-                <div className="flex items-center gap-3 px-4 py-3 bg-[#0f3d28]">
+              <div key={section.id} className="bg-white rounded-2xl border border-[#e5e5e0] shadow-sm overflow-visible">
+                <div className="flex items-center gap-3 px-4 py-3 bg-[#0f3d28] rounded-t-2xl">
                   <button onClick={function () { toggleCollapse(section.id) }} className="text-white/70 hover:text-white">
                     {isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
                   </button>
@@ -172,7 +189,7 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
                   <span className="text-white font-semibold text-[13.5px] flex-1">{section.label}</span>
                   <span className="text-white/70 text-xs">{stats.done}/{stats.total}</span>
                   <div className="w-24 bg-white/15 rounded-full h-1.5 overflow-hidden hidden sm:block">
-                    <div className="h-full bg-white rounded-full" style={{ width: `${stats.pct}%` }} />
+                    <div className="h-full bg-white rounded-full" style={{ width: stats.pct + '%' }} />
                   </div>
                   <span className="text-white font-bold text-xs w-9 text-right">{stats.pct}%</span>
                   {isAdmin && (
@@ -184,26 +201,33 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
                 </div>
 
                 {!isCollapsed && (
-                  <>
+                  <div>
                     {tree.length === 0 && <div className="px-4 py-6 text-center text-[#999] text-xs">No items{filter !== 'all' ? ' match this filter' : ' yet'}.</div>}
                     {tree.map(function (item) {
-                      return <ItemRow key={item.id} item={item} onEdit={setEditingItem} categories={categories} />
+                      return <ItemRow key={item.id} item={item} onEdit={setEditingItem} categories={categories} isAdmin={isAdmin} />
                     })}
 
                     {isAdmin && (
                       addingItemFor === section.id ? (
                         <div className="flex gap-2 px-4 py-3 bg-[#FAFAF8]">
-                          <input autoFocus placeholder="Item name..." value={newItemLabel[section.id] || ''} onChange={function (e) { setNewItemLabel(function (prev) { return { ...prev, [section.id]: e.target.value } }) }} onKeyDown={function (e) { if (e.key === 'Enter') addItem(section.id) }} className="flex-1 border border-[#ddd] rounded-lg px-3 py-1.5 text-sm" />
+                          <input autoFocus placeholder="Item name..." value={newItemLabel[section.id] || ''} onChange={function (e) {
+                            const val = e.target.value
+                            setNewItemLabel(function (prev) {
+                              const next = Object.assign({}, prev)
+                              next[section.id] = val
+                              return next
+                            })
+                          }} onKeyDown={function (e) { if (e.key === 'Enter') addItem(section.id) }} className="flex-1 border border-[#ddd] rounded-lg px-3 py-1.5 text-sm" />
                           <button onClick={function () { addItem(section.id) }} disabled={busy} className="px-3 py-1.5 bg-[#0f3d28] text-white rounded-lg text-xs font-semibold">Add</button>
                           <button onClick={function () { setAddingItemFor(null) }} className="px-3 py-1.5 border border-[#ddd] rounded-lg text-xs">Cancel</button>
                         </div>
                       ) : (
-                        <button onClick={function () { setAddingItemFor(section.id) }} className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-[#0f3d28] hover:bg-[#F5FAF6] border-t border-[#f2f2f0]">
+                        <button onClick={function () { setAddingItemFor(section.id) }} className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-[#0f3d28] hover:bg-[#F5FAF6] border-t border-[#f2f2f0] rounded-b-2xl">
                           <Plus size={13} /> Add Item
                         </button>
                       )
                     )}
-                  </>
+                  </div>
                 )}
               </div>
             )
@@ -225,22 +249,22 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
             const catObj = categories.find(function (c) { return c.name === category })
 
             return (
-              <div key={category} className="bg-white rounded-2xl border border-[#e5e5e0] shadow-sm overflow-hidden">
-                <div className="flex items-center gap-3 px-4 py-3" style={{ background: catObj ? catObj.color : '#0f3d28' }}>
+              <div key={category} className="bg-white rounded-2xl border border-[#e5e5e0] shadow-sm overflow-visible">
+                <div className="flex items-center gap-3 px-4 py-3 rounded-t-2xl" style={{ background: catObj ? catObj.color : '#0f3d28' }}>
                   <button onClick={function () { toggleCollapse('cat-' + category) }} className="text-white/70 hover:text-white">
                     {isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
                   </button>
                   <span className="text-white font-semibold text-[13.5px] flex-1">{category}</span>
                   <span className="text-white/70 text-xs">{done}/{total}</span>
                   <div className="w-24 bg-white/15 rounded-full h-1.5 overflow-hidden hidden sm:block">
-                    <div className="h-full bg-white rounded-full" style={{ width: `${pct}%` }} />
+                    <div className="h-full bg-white rounded-full" style={{ width: pct + '%' }} />
                   </div>
                   <span className="text-white font-bold text-xs w-9 text-right">{pct}%</span>
                 </div>
                 {!isCollapsed && (
                   items.length === 0
                     ? <div className="px-4 py-6 text-center text-[#999] text-xs">No items match this filter.</div>
-                    : items.map(function (item) { return <ItemRow key={item.id} item={item} onEdit={setEditingItem} categories={categories} /> })
+                    : items.map(function (item) { return <ItemRow key={item.id} item={item} onEdit={setEditingItem} categories={categories} isAdmin={isAdmin} /> })
                 )}
               </div>
             )
@@ -252,6 +276,8 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
         <ItemDetailsModal
           item={editingItem}
           categories={categories}
+          users={users}
+          isAdmin={isAdmin}
           onCategoriesChange={loadCategories}
           onClose={function () { setEditingItem(null) }}
         />

@@ -19,8 +19,8 @@ export default async function PillPage({ params }) {
     .select(`
       id, label, sort_order,
       checklist_items(
-        id, label, checked, item_status, priority, due_date, category, doc_links, remarks, parent_id, section_id,
-        task_assignments(profiles!task_assignments_user_id_fkey(full_name, email))
+        id, label, checked, item_status, priority, due_date, category, doc_links, remarks, parent_id, section_id, sort_order,
+        task_assignments(id, user_id, profiles!task_assignments_user_id_fkey(full_name, email))
       )
     `)
     .eq('pill_id', pillId)
@@ -30,8 +30,12 @@ export default async function PillPage({ params }) {
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-1">{pill?.name}</h1>
-      <p className="mb-4"><a href={`/checklist/${pill?.branch_id}`} className="text-sm text-[#0f3d28] font-semibold hover:underline">← {pill?.branches?.name}</a></p>
+      <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-1">{pill ? pill.name : ''}</h1>
+      <p className="mb-4">
+        <a href={pill ? '/checklist/' + pill.branch_id : '/checklist'} className="text-sm text-[#0f3d28] font-semibold hover:underline">
+          Back to {pill && pill.branches ? pill.branches.name : 'branch'}
+        </a>
+      </p>
       <ChecklistView pillId={pillId} initialSections={sections || []} isAdmin={isAdmin} />
     </div>
   )
