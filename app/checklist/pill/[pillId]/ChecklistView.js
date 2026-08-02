@@ -137,21 +137,21 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
   return (
     <div className="mt-2">
       <div className="flex items-center gap-2 mb-5 flex-wrap">
-        <div className="flex bg-[#F0EAF0] rounded-lg p-1">
+        <div className="flex bg-[#EEF2EF] rounded-lg p-1">
           {[{ key: 'all', label: 'All' }, { key: 'complied', label: 'Complied' }, { key: 'notcomplied', label: 'Not Complied' }].map(function (f) {
             return (
-              <button key={f.key} onClick={function () { setFilter(f.key) }} className={'px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (filter === f.key ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#6C6080]')}>
+              <button key={f.key} onClick={function () { setFilter(f.key) }} className={'px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (filter === f.key ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#5C6B62]')}>
                 {f.label}
               </button>
             )
           })}
         </div>
 
-        <div className="flex bg-[#F0EAF0] rounded-lg p-1">
-          <button onClick={function () { setViewMode('sections') }} className={'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (viewMode === 'sections' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#6C6080]')}>
+        <div className="flex bg-[#EEF2EF] rounded-lg p-1">
+          <button onClick={function () { setViewMode('sections') }} className={'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (viewMode === 'sections' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#5C6B62]')}>
             <LayoutList size={13} /> Sections
           </button>
-          <button onClick={function () { setViewMode('category') }} className={'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (viewMode === 'category' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#6C6080]')}>
+          <button onClick={function () { setViewMode('category') }} className={'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (viewMode === 'category' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#5C6B62]')}>
             <Users size={13} /> By Category
           </button>
         </div>

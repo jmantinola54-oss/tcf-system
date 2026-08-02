@@ -1,5 +1,7 @@
 import { createClient } from '../../../lib/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { ChevronLeft } from 'lucide-react'
 import PillsView from './PillsView'
 
 export const dynamic = 'force-dynamic'
@@ -24,8 +26,11 @@ export default async function BranchPage({ params }) {
 
   return (
     <div style={{ maxWidth: 900 }}>
-      <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-1">{branch ? branch.name : ''}</h1>
-      <p className="mb-4"><a href="/checklist" className="text-sm text-[#0f3d28] font-semibold hover:underline">Back to All Branches</a></p>
+      <Link href="/checklist" className="inline-flex items-center gap-1 text-xs font-semibold text-[#6E9A7C] hover:text-[#0f3d28] transition-colors mb-3">
+        <ChevronLeft size={14} strokeWidth={2.5} />
+        All Branches
+      </Link>
+      <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-6 tracking-tight">{branch ? branch.name : ''}</h1>
       <PillsView branchId={branchId} initialPills={pills || []} isAdmin={isAdmin} />
     </div>
   )

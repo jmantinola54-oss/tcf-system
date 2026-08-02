@@ -98,7 +98,7 @@ export default function BranchesOverview({ initialBranches, isAdmin }) {
           <div className="font-display text-3xl font-extrabold text-[#0A1F12]">{overallPct}%</div>
           <div className="text-xs text-[#6E9A7C] mb-2">{totals.done}/{totals.total}</div>
           <div className="bg-[#eee] rounded-full h-1.5 overflow-hidden">
-            <div className="h-full rounded-full" style={{ width: `${overallPct}%`, background: 'linear-gradient(90deg,#e87090,#ff9ab8)' }} />
+            <div className="h-full rounded-full bg-[#16A35A]" style={{ width: `${overallPct}%` }} />
           </div>
         </div>
         <div className="bg-white rounded-2xl border border-[#e5e5e0] p-5 shadow-sm">
@@ -155,7 +155,7 @@ export default function BranchesOverview({ initialBranches, isAdmin }) {
               <div className="p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#fce8ef' }}>
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#E1F7EC' }}>
                       <Network size={18} className="text-[#0f3d28]" />
                     </div>
                     <div>
