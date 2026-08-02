@@ -19,7 +19,7 @@ export default function OnboardingForm({ profile, branches }) {
     setSaving(true)
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .update({
           full_name: fullName.trim(),
@@ -29,21 +29,17 @@ export default function OnboardingForm({ profile, branches }) {
           onboarding_completed: true,
         })
         .eq('id', profile.id)
+        .select('status')
 
       if (error) throw error
 
-      // Best-effort read of the current status so we can send an already-
-      // active person straight in. maybeSingle() (not single()) means this
-      // never throws even if a read-back RLS policy isn't set up — if we
-      // can't confirm the status, we default to the safe choice: /hold.
-      let finalStatus = 'pending'
-      const { data: statusRow } = await supabase
-        .from('profiles')
-        .select('status')
-        .eq('id', profile.id)
-        .maybeSingle()
-      if (statusRow && statusRow.status) finalStatus = statusRow.status
+      if (!data || data.length === 0) {
+        throw new Error(
+          "We couldn't save your profile — a permission setting is blocking it. Please contact your administrator (RLS policy issue on profiles UPDATE)."
+        )
+      }
 
+      const finalStatus = data[0].status || 'pending'
       const destination = finalStatus === 'active' ? '/' : '/hold'
 
       // A hard redirect instead of router.push(): this guarantees the
