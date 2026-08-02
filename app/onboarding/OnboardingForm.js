@@ -12,36 +12,46 @@ export default function OnboardingForm({ profile, branches }) {
   const [branchId, setBranchId] = useState(branches[0] ? branches[0].id : '')
   const [position, setPosition] = useState('')
   const [saving, setSaving] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!fullName.trim()) { alert('Please enter your full name.'); return }
+    setErrorMsg('')
+    if (!fullName.trim()) { setErrorMsg('Please enter your full name.'); return }
     setSaving(true)
 
-    const { error } = await supabase.from('profiles').update({
-      full_name: fullName.trim(),
-      department: department.trim() || null,
-      branch_id: branchId || null,
-      position: position.trim() || null,
-      onboarding_completed: true,
-    }).eq('id', profile.id)
+    try {
+      const { data: updated, error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: fullName.trim(),
+          department: department.trim() || null,
+          branch_id: branchId || null,
+          position: position.trim() || null,
+          onboarding_completed: true,
+        })
+        .eq('id', profile.id)
+        .select('status')
+        .single()
 
-    if (error) { setSaving(false); alert('Error: ' + error.message); return }
+      if (error) throw error
 
-    // Re-read the account's real status so we send them to exactly the
-    // right place, instead of bouncing through "/" and relying on
-    // middleware to redirect a second time.
-    const statusRes = await supabase.from('profiles').select('status').eq('id', profile.id).single()
-    const finalStatus = statusRes.data ? statusRes.data.status : 'pending'
+      // updated.status tells us exactly where to send the person, straight
+      // from the row we just wrote — no extra round trip, no race with the
+      // navigation below.
+      const finalStatus = updated ? updated.status : 'pending'
+      const destination = finalStatus === 'active' ? '/' : '/hold'
 
-    setSaving(false)
-
-    if (finalStatus === 'active') {
-      router.push('/')
-    } else {
-      router.push('/hold')
+      // Refresh first so the server/middleware picks up onboarding_completed,
+      // then navigate. Doing push() immediately followed by refresh() can
+      // let the refresh win the race and leave the user stuck on this page.
+      router.refresh()
+      router.push(destination)
+    } catch (err) {
+      setErrorMsg(err && err.message ? err.message : 'Something went wrong. Please try again.')
+    } finally {
+      setSaving(false)
     }
-    router.refresh()
   }
 
   return (
@@ -52,6 +62,12 @@ export default function OnboardingForm({ profile, branches }) {
         <p className="text-[#6E9A7C] text-sm mb-7">Almost there — just a few details before an admin reviews your account.</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {errorMsg && (
+            <div className="bg-[#FDEAEA] text-[#C0282A] text-xs font-medium rounded-lg px-3 py-2.5">
+              {errorMsg}
+            </div>
+          )}
+
           <div>
             <label className="text-xs font-semibold text-[#666] block mb-1">Full name</label>
             <input value={fullName} onChange={function (e) { setFullName(e.target.value) }} className="w-full border border-[#ddd] rounded-lg px-3 py-2.5 text-sm" />

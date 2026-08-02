@@ -41,10 +41,27 @@ export default function UserTable({ users, currentUserId, currentUserRole }) {
   async function handleDelete(userId, name) {
     if (!confirm(`Delete ${name}? This cannot be undone.`)) return
     setBusyId(userId)
-    const { error } = await supabase.from('profiles').delete().eq('id', userId)
-    setBusyId(null)
-    if (error) { alert('Error: ' + error.message); return }
-    router.refresh()
+
+    try {
+      const res = await fetch('/api/admin/delete-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+      const result = await res.json()
+
+      if (!res.ok) {
+        alert('Could not delete this user: ' + (result.error || 'Unknown error.'))
+        return
+      }
+
+      await logActivity(supabase, 'user_deleted', { name })
+      router.refresh()
+    } catch (err) {
+      alert('Could not delete this user: ' + (err && err.message ? err.message : 'Network error.'))
+    } finally {
+      setBusyId(null)
+    }
   }
 
   const pendingCount = users.filter(u => u.status === 'pending').length
