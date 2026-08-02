@@ -29,6 +29,14 @@ export default async function PillPage({ params }) {
 
   const isAdmin = ['admin', 'super_admin'].includes(profile.role)
 
+  // Deny direct access to a pill this person isn't allowed to see —
+  // this is the check that matters most, since someone could otherwise
+  // just bookmark or type the URL and bypass the list-view filtering.
+  const { data: accessRows } = await supabase.from('user_pill_access').select('pill_id').eq('user_id', user.id)
+  const allowedPillIds = new Set((accessRows || []).map(function (r) { return r.pill_id }))
+  const restricted = !isAdmin && allowedPillIds.size > 0
+  if (restricted && !allowedPillIds.has(pillId)) redirect('/checklist')
+
   return (
     <div>
       

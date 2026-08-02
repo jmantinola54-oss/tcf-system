@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { createClient } from '../../../lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { logActivity } from '../../lib/audit'
-import { Search, Check, X, Ban, RotateCcw, Trash2 } from 'lucide-react'
+import { Search, Check, X, Ban, RotateCcw, Trash2, ShieldCheck } from 'lucide-react'
+import AccessControlModal from '../../components/AccessControlModal'
 
 const STATUS_STYLE = {
   pending: { bg: '#FFF3DC', color: '#B06800', label: 'Pending' },
@@ -19,6 +20,7 @@ export default function UserTable({ users, currentUserId, currentUserRole }) {
   const [busyId, setBusyId] = useState(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [accessUser, setAccessUser] = useState(null)
 
   // Live-refresh the list whenever any profile row changes — new
   // registrations appear, and approvals/edits made elsewhere (another
@@ -173,6 +175,9 @@ export default function UserTable({ users, currentUserId, currentUserRole }) {
                         {(u.status === 'suspended' || u.status === 'rejected') && (
                           <button onClick={() => updateUser(u.id, { status: 'active' }, 'user_status_changed', { name: u.full_name || u.email })} disabled={isBusy} className="flex items-center gap-1 px-2.5 py-1 bg-[#E1F7EC] text-[#16A35A] rounded-md text-xs font-semibold"><RotateCcw size={12} /> Reactivate</button>
                         )}
+                        {u.role === 'user' && u.status === 'active' && (
+                          <button onClick={() => setAccessUser(u)} disabled={isBusy} className="flex items-center gap-1 px-2.5 py-1 border border-[#ddd] rounded-md text-xs text-[#0f3d28] hover:bg-[#F5FAF6]"><ShieldCheck size={12} /> Access</button>
+                        )}
                         {u.id !== currentUserId && (
                           <button onClick={() => handleDelete(u.id, u.full_name || u.email)} disabled={isBusy} className="flex items-center gap-1 px-2.5 py-1 border border-[#ddd] rounded-md text-xs text-red-600"><Trash2 size={12} /></button>
                         )}
@@ -185,6 +190,16 @@ export default function UserTable({ users, currentUserId, currentUserRole }) {
           </table>
         </div>
       </div>
+
+      {accessUser && (
+        <AccessControlModal
+          user={accessUser}
+          onClose={function (changed) {
+            setAccessUser(null)
+            if (changed) router.refresh()
+          }}
+        />
+      )}
     </div>
   )
 }
