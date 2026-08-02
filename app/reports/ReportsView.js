@@ -59,7 +59,7 @@ export default function ReportsView({ branches }) {
       <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <BarChart3 size={20} className="text-[#0f3d28]" />
-          <h1 className="font-display text-2xl font-bold text-[#0f3d28]">Executive Report</h1>
+          <h1 className="font-display text-2xl font-bold text-[#0f3d28] tracking-tight">Executive Report</h1>
         </div>
         <select
           value={selectedBranchId}

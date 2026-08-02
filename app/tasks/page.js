@@ -22,7 +22,7 @@ export default async function MyTasksPage() {
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-1">My Tasks</h1>
+      <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-1 tracking-tight">My Tasks</h1>
       <p className="text-[#6E9A7C] text-sm mb-6">Everything currently assigned to you</p>
       <TasksView tasks={tasks} isAdmin={isAdmin} />
     </div>

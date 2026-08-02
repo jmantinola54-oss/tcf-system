@@ -19,7 +19,7 @@ export default async function TasksAdminPage() {
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-1">Task Assignment</h1>
+      <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-1 tracking-tight">Task Assignment</h1>
       <p className="text-[#6E9A7C] text-sm mb-6">See who's assigned to what, across every checklist</p>
       <TaskManager items={items || []} />
     </div>

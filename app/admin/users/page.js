@@ -16,7 +16,7 @@ export default async function UsersAdminPage() {
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-1">User Management</h1>
+      <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-1 tracking-tight">User Management</h1>
       <p className="text-[#6E9A7C] text-sm mb-6">Approve registrations, manage roles and account status</p>
       <UserTable users={users || []} currentUserId={user.id} currentUserRole={myProfile.role} />
     </div>

@@ -4,7 +4,7 @@ import { useState, Fragment } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { logActivity } from '../lib/audit'
-import { LayoutGrid, Boxes, Search } from 'lucide-react'
+import { LayoutGrid, Boxes, Search, Plus, ArrowUpFromLine, ArrowDownToLine, Trash2, CheckCircle2 } from 'lucide-react'
 
 function statusFor(item) {
   if (item.qty <= 0) return { label: 'Out of stock', color: '#C0282A', bg: '#FDEAEA' }
@@ -101,11 +101,11 @@ export default function InventoryView({ initialItems, initialWithdrawals, curren
 
   return (
     <div>
-      <div className="flex bg-[#F0EAF0] rounded-lg p-1 w-fit mb-6">
-        <button onClick={() => setTab('dashboard')} className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors ${tab === 'dashboard' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#6C6080]'}`}>
+      <div className="flex bg-[#EEF2EF] rounded-lg p-1 w-fit mb-6">
+        <button onClick={() => setTab('dashboard')} className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors ${tab === 'dashboard' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#5C6B62]'}`}>
           <LayoutGrid size={13} /> Dashboard
         </button>
-        <button onClick={() => setTab('inventory')} className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors ${tab === 'inventory' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#6C6080]'}`}>
+        <button onClick={() => setTab('inventory')} className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors ${tab === 'inventory' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#5C6B62]'}`}>
           <Boxes size={13} /> Inventory
         </button>
       </div>
@@ -123,7 +123,9 @@ export default function InventoryView({ initialItems, initialWithdrawals, curren
             <div className="bg-white rounded-2xl border border-[#e5e5e0] shadow-sm overflow-hidden">
               <div className="px-5 py-3 border-b border-[#f2f2f0] font-semibold text-sm text-[#0f3d28]">Items needing attention</div>
               {needsAttention.length === 0 ? (
-                <div className="p-8 text-center text-sm text-[#888]">All items in stock ✓</div>
+                <div className="p-8 text-center text-sm text-[#888] flex items-center justify-center gap-1.5">
+                  <CheckCircle2 size={15} className="text-[#16A35A]" /> All items in stock
+                </div>
               ) : (
                 needsAttention.map((item, idx) => {
                   const s = statusFor(item)
@@ -167,7 +169,9 @@ export default function InventoryView({ initialItems, initialWithdrawals, curren
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9aa]" />
               <input placeholder="Search by name or code…" value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-8 pr-3 py-2 rounded-lg border border-[#ddd] text-sm" />
             </div>
-            <button onClick={() => setShowAdd(s => !s)} className="px-4 py-2 bg-[#0f3d28] text-white rounded-lg text-sm font-semibold">{showAdd ? 'Cancel' : '+ Add item'}</button>
+            <button onClick={() => setShowAdd(s => !s)} className="flex items-center gap-1.5 px-4 py-2 bg-[#0f3d28] hover:bg-[#14512f] text-white rounded-lg text-sm font-semibold transition-colors">
+              {showAdd ? 'Cancel' : (<><Plus size={15} /> Add item</>)}
+            </button>
           </div>
 
           {showAdd && (
@@ -212,9 +216,9 @@ export default function InventoryView({ initialItems, initialWithdrawals, curren
                           <td className="p-3"><span className="text-[10.5px] font-bold px-2.5 py-1 rounded-full" style={{ background: status.bg, color: status.color }}>{status.label}</span></td>
                           <td className="p-3">
                             <div className="flex gap-1.5">
-                              <button onClick={() => openAction(item.id, 'withdraw')} className="px-2.5 py-1 text-xs border border-[#ddd] rounded-md">↑ Withdraw</button>
-                              <button onClick={() => openAction(item.id, 'restock')} className="px-2.5 py-1 text-xs border border-[#ddd] rounded-md">↓ Restock</button>
-                              <button onClick={() => handleDelete(item)} className="px-2.5 py-1 text-xs border border-[#ddd] rounded-md text-red-600">Delete</button>
+                              <button onClick={() => openAction(item.id, 'withdraw')} className="flex items-center gap-1 px-2.5 py-1 text-xs border border-[#ddd] rounded-md hover:bg-[#FAFAF8]"><ArrowUpFromLine size={12} /> Withdraw</button>
+                              <button onClick={() => openAction(item.id, 'restock')} className="flex items-center gap-1 px-2.5 py-1 text-xs border border-[#ddd] rounded-md hover:bg-[#FAFAF8]"><ArrowDownToLine size={12} /> Restock</button>
+                              <button onClick={() => handleDelete(item)} className="flex items-center gap-1 px-2.5 py-1 text-xs border border-[#ddd] rounded-md text-red-600 hover:bg-red-50"><Trash2 size={12} /></button>
                             </div>
                           </td>
                         </tr>

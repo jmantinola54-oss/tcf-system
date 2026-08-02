@@ -21,7 +21,7 @@ export default async function InventoryPage() {
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-1">Inventory</h1>
+      <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-1 tracking-tight">Inventory</h1>
       <p className="text-[#6E9A7C] text-sm mb-6">Stock levels, withdrawals & restocks</p>
       <InventoryView
         initialItems={items || []}

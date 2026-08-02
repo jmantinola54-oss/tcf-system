@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { createClient } from '../../lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Pencil, Link2, StickyNote, ArrowRight } from 'lucide-react'
+import { Pencil, Link2, StickyNote, ArrowRight, Check, PartyPopper } from 'lucide-react'
 import ItemDetailsModal from '../components/ItemDetailsModal'
 import { logActivity } from '../lib/audit'
 
@@ -45,7 +45,9 @@ export default function TasksView({ tasks, isAdmin }) {
   if (tasks.length === 0) {
     return (
       <div className="bg-white rounded-2xl border border-[#e5e5e0] p-12 text-center">
-        <div className="text-4xl mb-3">🎉</div>
+        <div className="w-12 h-12 rounded-2xl bg-[#E1F7EC] flex items-center justify-center mx-auto mb-4">
+          <PartyPopper size={22} className="text-[#16A35A]" strokeWidth={2} />
+        </div>
         <p className="text-sm text-[#666] font-medium">No tasks assigned to you yet.</p>
         <p className="text-xs text-[#999] mt-1">Once an admin assigns you something, it'll show up here.</p>
       </div>
@@ -54,9 +56,9 @@ export default function TasksView({ tasks, isAdmin }) {
 
   return (
     <div>
-      <div className="flex bg-[#F0EAF0] rounded-lg p-1 w-fit mb-5">
-        <button onClick={function () { setFilter('active') }} className={'px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (filter === 'active' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#6C6080]')}>Active</button>
-        <button onClick={function () { setFilter('all') }} className={'px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (filter === 'all' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#6C6080]')}>All</button>
+      <div className="flex bg-[#EEF2EF] rounded-lg p-1 w-fit mb-5">
+        <button onClick={function () { setFilter('active') }} className={'px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (filter === 'active' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#5C6B62]')}>Active</button>
+        <button onClick={function () { setFilter('all') }} className={'px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (filter === 'all' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#5C6B62]')}>All</button>
       </div>
 
       <div className="bg-white rounded-2xl border border-[#e5e5e0] shadow-sm overflow-hidden">
@@ -70,7 +72,7 @@ export default function TasksView({ tasks, isAdmin }) {
                 onClick={function () { toggleItem(item) }}
                 className={'w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ' + (item.checked ? 'bg-[#16A35A] border-[#16A35A]' : 'border-[#ccc] hover:border-[#0f3d28]')}
               >
-                {item.checked && <span className="text-white text-[11px] leading-none">✓</span>}
+                {item.checked && <Check size={12} strokeWidth={3} className="text-white" />}
               </button>
 
               <div className="flex-1 min-w-[140px]">
