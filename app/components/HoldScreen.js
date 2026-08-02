@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { createClient } from '../../lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Clock, Ban, ShieldOff } from 'lucide-react'
@@ -37,6 +38,35 @@ const STATE_CONFIG = {
 export default function HoldScreen({ profile }) {
   const supabase = createClient()
   const router = useRouter()
+
+  // Listen for an admin approving/rejecting/suspending this account while
+  // this page is open, so it unlocks the instant it happens — no manual
+  // refresh needed.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`profile-status-${profile.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${profile.id}` },
+        (payload) => {
+          const newStatus = payload.new && payload.new.status
+          if (newStatus === 'active') {
+            // Approved — go straight in with a hard redirect so middleware
+            // re-runs against the fresh status.
+            window.location.href = '/'
+          } else if (newStatus && newStatus !== profile.status) {
+            // Status changed to something else (e.g. rejected/suspended) —
+            // reload so the right message shows immediately.
+            window.location.reload()
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [profile.id, profile.status, supabase])
 
   const config = STATE_CONFIG[profile.status] || STATE_CONFIG.pending
   const Icon = config.icon

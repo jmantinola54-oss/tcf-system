@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '../../../lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { logActivity } from '../../lib/audit'
@@ -19,6 +19,26 @@ export default function UserTable({ users, currentUserId, currentUserRole }) {
   const [busyId, setBusyId] = useState(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+
+  // Live-refresh the list whenever any profile row changes — new
+  // registrations appear, and approvals/edits made elsewhere (another
+  // admin, another tab) show up instantly without a manual refresh.
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-profiles-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => {
+          router.refresh()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, router])
 
   const filtered = users.filter(u => {
     if (statusFilter && u.status !== statusFilter) return false
