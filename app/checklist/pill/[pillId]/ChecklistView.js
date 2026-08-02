@@ -119,28 +119,28 @@ export default function ChecklistView({ pillId, initialSections, isAdmin }) {
 
   return (
     <div className="mt-2">
-      <div className="flex items-center gap-2 mb-5 flex-wrap">
-        <div className="flex bg-[#EEF2EF] rounded-lg p-1">
+      <div className="bg-white rounded-2xl border border-[#e5e5e0] shadow-sm p-2.5 mb-5 flex items-center gap-2 flex-wrap">
+        <div className="flex bg-[#F2F5F3] border border-[#e5e9e6] rounded-lg p-1">
           {[{ key: 'all', label: 'All' }, { key: 'complied', label: 'Complied' }, { key: 'notcomplied', label: 'Not Complied' }].map(function (f) {
             return (
-              <button key={f.key} onClick={function () { setFilter(f.key) }} className={'px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (filter === f.key ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#5C6B62]')}>
+              <button key={f.key} onClick={function () { setFilter(f.key) }} className={'px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (filter === f.key ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#46524B] hover:text-[#0f3d28]')}>
                 {f.label}
               </button>
             )
           })}
         </div>
 
-        <div className="flex bg-[#EEF2EF] rounded-lg p-1">
-          <button onClick={function () { setViewMode('sections') }} className={'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (viewMode === 'sections' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#5C6B62]')}>
+        <div className="flex bg-[#F2F5F3] border border-[#e5e9e6] rounded-lg p-1">
+          <button onClick={function () { setViewMode('sections') }} className={'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (viewMode === 'sections' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#46524B] hover:text-[#0f3d28]')}>
             <LayoutList size={13} /> Sections
           </button>
-          <button onClick={function () { setViewMode('category') }} className={'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (viewMode === 'category' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#5C6B62]')}>
+          <button onClick={function () { setViewMode('category') }} className={'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ' + (viewMode === 'category' ? 'bg-white text-[#0f3d28] shadow-sm' : 'text-[#46524B] hover:text-[#0f3d28]')}>
             <Users size={13} /> By Category
           </button>
         </div>
 
         {viewMode === 'sections' && (
-          <button onClick={function () { setAddingSection(true) }} className="flex items-center gap-1.5 px-3.5 py-2 bg-[#0f3d28] hover:bg-[#14512f] text-white rounded-lg text-xs font-semibold transition-colors shadow-sm">
+          <button onClick={function () { setAddingSection(true) }} className="flex items-center gap-1.5 px-3.5 py-2 bg-[#0f3d28] hover:bg-[#14512f] text-white rounded-lg text-xs font-semibold transition-colors ml-auto">
             <Plus size={14} /> Section
           </button>
         )}
