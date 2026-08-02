@@ -1,5 +1,6 @@
 import { createClient } from '../../../../lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { ChevronLeft } from 'lucide-react'
 import ChecklistView from './ChecklistView'
 
 export const dynamic = 'force-dynamic'
@@ -30,12 +31,14 @@ export default async function PillPage({ params }) {
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-1">{pill ? pill.name : ''}</h1>
-      <p className="mb-4">
-        <a href={pill ? '/checklist/' + pill.branch_id : '/checklist'} className="text-sm text-[#0f3d28] font-semibold hover:underline">
-          Back to {pill && pill.branches ? pill.branches.name : 'branch'}
-        </a>
-      </p>
+      
+        <a href={pill ? '/checklist/' + pill.branch_id : '/checklist'}
+        className="inline-flex items-center gap-1 text-xs font-semibold text-[#6E9A7C] hover:text-[#0f3d28] transition-colors mb-3"
+      >
+        <ChevronLeft size={14} strokeWidth={2.5} />
+        {pill && pill.branches ? pill.branches.name : 'Branch'}
+      </a>
+      <h1 className="font-display text-2xl font-bold text-[#0f3d28] mb-6 tracking-tight">{pill ? pill.name : ''}</h1>
       <ChecklistView pillId={pillId} initialSections={sections || []} isAdmin={isAdmin} />
     </div>
   )
