@@ -37,6 +37,14 @@ function bucketFor(item) {
   return 'later'
 }
 
+function daysLeftStyle(item) {
+  const bucket = bucketFor(item)
+  if (bucket === 'completed') return { bg: '#E1F7EC', color: '#16A35A' }
+  if (bucket === 'overdue') return { bg: '#FDEAEA', color: '#C0282A' }
+  if (bucket === 'today' || bucket === 'week') return { bg: '#FFF3DC', color: '#B06800' }
+  return { bg: '#EEF2EF', color: '#5C6B62' }
+}
+
 const TABS = [
   { key: 'all', label: 'All' },
   { key: 'overdue', label: 'Overdue' },
@@ -115,7 +123,7 @@ export default function DeadlineCenterView({ items }) {
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`px-4 py-2 text-xs font-semibold rounded-lg transition-colors ${
-              tab === t.key ? 'bg-[#0f3d28] text-white' : 'bg-white border border-[#ddd] text-[#555] hover:bg-[#f5f5f5]'
+              tab === t.key ? 'bg-[#0f3d28] text-white shadow-sm' : 'bg-white border border-[#ddd] text-[#555] hover:bg-[#f5f5f5]'
             }`}
           >
             {t.label}
@@ -133,10 +141,10 @@ export default function DeadlineCenterView({ items }) {
           {categories.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
         <div className="flex-1" />
-        <button onClick={exportCSV} className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-[#ddd] rounded-lg text-xs font-semibold text-[#0f3d28]">
+        <button onClick={exportCSV} className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-[#ddd] rounded-lg text-xs font-semibold text-[#0f3d28] hover:bg-[#F5FAF6] transition-colors">
           <FileDown size={13} /> Excel (CSV)
         </button>
-        <button onClick={exportPDF} className="flex items-center gap-1.5 px-3.5 py-2 bg-[#0f3d28] text-white rounded-lg text-xs font-semibold">
+        <button onClick={exportPDF} className="flex items-center gap-1.5 px-3.5 py-2 bg-[#0f3d28] hover:bg-[#14512f] text-white rounded-lg text-xs font-semibold transition-colors">
           <FileText size={13} /> PDF
         </button>
       </div>
@@ -166,12 +174,23 @@ export default function DeadlineCenterView({ items }) {
                       <div className="font-medium">{item.label}</div>
                       <div className="text-[11px] text-[#999]">{item.sections?.pills?.branches?.name} / {item.sections?.pills?.name} / {item.sections?.label}</div>
                     </td>
-                    <td className="p-3 text-[#666]">{item.category || '—'}</td>
+                    <td className="p-3">
+                      {item.category ? (
+                        <span className="text-[10.5px] font-semibold px-2.5 py-1 rounded-full bg-[#EEF2EF] text-[#5C6B62]">{item.category}</span>
+                      ) : (
+                        <span className="text-[#bbb]">—</span>
+                      )}
+                    </td>
                     <td className="p-3">
                       <span className="text-[10.5px] font-bold px-2.5 py-1 rounded-full" style={{ background: status.bg, color: status.color }}>{status.label}</span>
                     </td>
                     <td className="p-3 text-[#666]">{item.due_date}</td>
-                    <td className="p-3 text-[#666]">{daysLeftLabel(item)}</td>
+                    <td className="p-3">
+                      {(function () {
+                        const dl = daysLeftStyle(item)
+                        return <span className="text-[10.5px] font-semibold px-2.5 py-1 rounded-full" style={{ background: dl.bg, color: dl.color }}>{daysLeftLabel(item)}</span>
+                      })()}
+                    </td>
                     <td className="p-3">
                       <div className="flex items-center gap-2">
                         {item.doc_links?.length > 0 && <Link2 size={14} className="text-[#888]" />}
