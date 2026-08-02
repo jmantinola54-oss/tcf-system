@@ -14,13 +14,13 @@ const NAV_ITEMS = [
 
 const TRACKING_ITEMS = [
   { href: '/deadlines', label: 'Deadline Center', icon: '⏰' },
-  { href: '/reports', label: 'Reports', icon: '📊' },
 ]
 
 const ADMIN_NAV_ITEMS = [
   { href: '/admin/users', label: 'User Management', icon: '👥' },
   { href: '/admin/tasks', label: 'Task Assignment', icon: '📌' },
   { href: '/activity', label: 'Activity Log', icon: '📜' },
+  { href: '/reports', label: 'Reports', icon: '📊' },
 ]
 
 function NavLink({ item, active, onClick }) {
