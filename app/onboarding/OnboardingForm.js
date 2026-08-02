@@ -2,11 +2,9 @@
 
 import { useState } from 'react'
 import { createClient } from '../../lib/supabase/client'
-import { useRouter } from 'next/navigation'
 
 export default function OnboardingForm({ profile, branches }) {
   const supabase = createClient()
-  const router = useRouter()
   const [fullName, setFullName] = useState(profile?.full_name || '')
   const [department, setDepartment] = useState('')
   const [branchId, setBranchId] = useState(branches[0] ? branches[0].id : '')
@@ -48,11 +46,11 @@ export default function OnboardingForm({ profile, branches }) {
 
       const destination = finalStatus === 'active' ? '/' : '/hold'
 
-      // Refresh first so the server/middleware picks up onboarding_completed,
-      // then navigate. Doing push() immediately followed by refresh() can
-      // let the refresh win the race and leave the user stuck on this page.
-      router.refresh()
-      router.push(destination)
+      // A hard redirect instead of router.push(): this guarantees the
+      // middleware re-runs against a fresh request and always lands the
+      // user on the right page, sidestepping an App Router quirk where
+      // refresh() + push() back-to-back can silently cancel the navigation.
+      window.location.href = destination
     } catch (err) {
       setErrorMsg(err && err.message ? err.message : 'Something went wrong. Please try again.')
     } finally {
