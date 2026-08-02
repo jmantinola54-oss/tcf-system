@@ -21,7 +21,7 @@ export default function OnboardingForm({ profile, branches }) {
     setSaving(true)
 
     try {
-      const { data: updated, error } = await supabase
+      const { error } = await supabase
         .from('profiles')
         .update({
           full_name: fullName.trim(),
@@ -31,15 +31,21 @@ export default function OnboardingForm({ profile, branches }) {
           onboarding_completed: true,
         })
         .eq('id', profile.id)
-        .select('status')
-        .single()
 
       if (error) throw error
 
-      // updated.status tells us exactly where to send the person, straight
-      // from the row we just wrote — no extra round trip, no race with the
-      // navigation below.
-      const finalStatus = updated ? updated.status : 'pending'
+      // Best-effort read of the current status so we can send an already-
+      // active person straight in. maybeSingle() (not single()) means this
+      // never throws even if a read-back RLS policy isn't set up — if we
+      // can't confirm the status, we default to the safe choice: /hold.
+      let finalStatus = 'pending'
+      const { data: statusRow } = await supabase
+        .from('profiles')
+        .select('status')
+        .eq('id', profile.id)
+        .maybeSingle()
+      if (statusRow && statusRow.status) finalStatus = statusRow.status
+
       const destination = finalStatus === 'active' ? '/' : '/hold'
 
       // Refresh first so the server/middleware picks up onboarding_completed,
