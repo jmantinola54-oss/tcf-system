@@ -75,7 +75,7 @@ export default function OnboardingForm({ profile, branches }) {
 
           <div>
             <label className="text-xs font-semibold text-[#666] block mb-1">Department</label>
-            <input value={department} onChange={function (e) { setDepartment(e.target.value) }} placeholder="e.g. Administrative, Nursing..." className="w-full border border-[#ddd] rounded-lg px-3 py-2.5 text-sm" />
+            <input value={department} onChange={function (e) { setDepartment(e.target.value) }} placeholder="e.g. Tech, Multimedia..." className="w-full border border-[#ddd] rounded-lg px-3 py-2.5 text-sm" />
           </div>
 
           <div>
